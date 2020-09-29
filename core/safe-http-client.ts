@@ -7,13 +7,13 @@ export interface HttpClientDiagnostics<
   T,
 > {
   isValidResponse: (ctx: C, resp: Response) => boolean;
-  onInvalidResponse: (ctx: HttpClientContext, resp: Response) => T | undefined;
+  onInvalidResponse: (ctx: C, resp: Response) => T | undefined;
   onInvalidContent: (
     ctx: HttpClientContext,
     o: unknown,
     res: Response,
   ) => T | undefined;
-  onException: (ctx: HttpClientContext, err: Error) => T | undefined;
+  onException: (ctx: C, err: Error) => T | undefined;
 }
 
 export interface SafeFetchGuard<C extends HttpClientContext, T> {
