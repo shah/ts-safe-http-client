@@ -42,6 +42,16 @@ export interface GitHubRepoTag {
 
 export type GitHubRepoTags = GitHubRepoTag[];
 
+/**
+ * Make sure that the object passed is in is an array and that each
+ * element of the array is an object with a "name" property
+ * @param o object passed in from HTTP client fetch
+ */
+export function isGitHubRepoTags(o: unknown): o is GitHubRepoTags {
+  return o && Array.isArray(o) &&
+    o.filter((tag) => typeof tag !== "object" || !("name" in tag)).length == 0;
+}
+
 export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isGitRepo = true;
   readonly isGitHubRepo = true;
@@ -70,7 +80,7 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
       isManagedGitRepoEndpointContext: true,
       repo: this,
       request: this.apiURL("tags"),
-    });
+    }, isGitHubRepoTags);
     if (ghTags) {
       const result: git.GitTags = {
         gitRepoTags: [],

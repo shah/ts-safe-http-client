@@ -1,1 +1,1 @@
-export * from "./github-http-client.ts";
+export * from "./github.ts";

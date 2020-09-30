@@ -1,5 +1,6 @@
 export interface HttpClientContext {
   readonly request: RequestInfo;
+  readonly requestInit?: RequestInit;
 }
 
 export interface HttpClientDiagnostics<
@@ -86,7 +87,10 @@ export async function safeFetchJSON<
   >(),
 ): Promise<T | undefined> {
   try {
-    const response = await window.fetch(ctx.request);
+    const response = await window.fetch(
+      ctx.request,
+      { ...ctx.requestInit, redirect: "follow" },
+    );
     if (diags.isValidResponse(ctx, response)) {
       const content = await response.json();
       if (guard && !guard(content, response, ctx)) {
