@@ -30,8 +30,21 @@ export interface ManagedGitRepoEndpoint<
   readonly isManagedGitRepoEndpoint: true;
 }
 
-export interface ManagedGitRepo extends RemoteGitRepo {
+// deno-lint-ignore no-empty-interface
+export interface ManagedGitRepoIdentity {
+}
+
+export interface GitRepoManager<
+  I extends ManagedGitRepoIdentity,
+  R extends ManagedGitRepo<I>,
+> {
+  readonly repo: (mgri: I) => R;
+}
+
+export interface ManagedGitRepo<I extends ManagedGitRepoIdentity>
+  extends RemoteGitRepo {
   readonly isManagedGitRepo: true;
+  readonly identity: I;
   readonly repoTags: () => Promise<GitTags | undefined>;
   readonly repoLatestTag: () => Promise<GitTag | undefined>;
 }

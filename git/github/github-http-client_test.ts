@@ -2,13 +2,17 @@ import { testingAsserts as ta } from "../deps-test.ts";
 import * as gh from "./mod.ts";
 
 Deno.test(`Test GitHubRepo builders`, async () => {
-  const repo = new gh.GitHubRepo("shah/ts-lhncbc-lforms");
+  const repo = gh.GitHub.singleton.repo(
+    { org: "shah", repo: "ts-safe-http-client" },
+  );
   ta.assert(repo);
   ta.assert(repo.url());
 });
 
 Deno.test(`Test valid GitHub repo tags`, async () => {
-  const repo = new gh.GitHubRepo("shah/ts-lhncbc-lforms");
+  const repo = gh.GitHub.singleton.repo(
+    { org: "shah", repo: "ts-safe-http-client" },
+  );
   ta.assert(repo);
 
   const latestTag = await repo.repoLatestTag();

@@ -5,7 +5,7 @@ export type GitHubOrgID = string;
 export type GitHubRepoID = string;
 export type GitHubRepoURL = string;
 
-export interface GitHubRepoOwner {
+export interface GitHubRepoIdentity extends git.ManagedGitRepoIdentity {
   readonly org: GitHubOrgID;
   readonly repo: GitHubRepoID;
 }
@@ -27,42 +27,42 @@ export class GitHubRepoHttpClient extends shc.SafeHttpClient<
 > {
 }
 
+export class GitHub
+  implements git.GitRepoManager<GitHubRepoIdentity, GitHubRepo> {
+  static readonly singleton = new GitHub();
+
+  repo(identity: GitHubRepoIdentity): GitHubRepo {
+    return new GitHubRepo(identity);
+  }
+}
+
 export interface GitHubRepoTag {
   readonly name: string;
 }
 
 export type GitHubRepoTags = GitHubRepoTag[];
 
-export class GitHubRepo implements git.ManagedGitRepo, GitHubRepoOwner {
+export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isGitRepo = true;
   readonly isGitHubRepo = true;
   readonly isRemoteGitRepo = true;
   readonly isManagedGitRepo = true;
-  readonly org: GitHubOrgID;
-  readonly repo: GitHubRepoID;
   readonly tagsFetch: shc.SafeFetchJSON<
     GitHubHttpClientContext,
     GitHubRepoTags,
     GitHubRepoTags
   >;
 
-  constructor(repoSpec: string | GitHubRepoOwner) {
-    let owner: GitHubRepoOwner;
-    if (typeof repoSpec === "string") {
-      const [org, repo] = repoSpec.split("/");
-      owner = { org: org, repo: repo };
-    } else owner = repoSpec;
-    this.org = owner.org;
-    this.repo = owner.repo;
+  constructor(readonly identity: GitHubRepoIdentity) {
     this.tagsFetch = shc.safeFetchJSON;
   }
 
   url(): git.GitRepoRemoteURL {
-    return `https://github.com/${this.org}/${this.repo}`;
+    return `https://github.com/${this.identity.org}/${this.identity.repo}`;
   }
 
   apiURL(path: "tags"): GitHubRepoURL {
-    return `https://api.github.com/repos/${this.org}/${this.repo}/${path}`;
+    return `https://api.github.com/repos/${this.identity.org}/${this.identity.repo}/${path}`;
   }
 
   async repoTags(): Promise<git.GitTags | undefined> {
