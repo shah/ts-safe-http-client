@@ -1,5 +1,6 @@
 import type * as git from "../git.ts";
 import { safeHttpClient as shc } from "./deps.ts";
+import * as gls from "./gitlab-schema.ts";
 
 export type GitLabHostname = string;
 export type GitLabGroupID = string;
@@ -98,27 +99,13 @@ export class GitLabRepoHttpClient extends shc.SafeHttpClient<
 
 export class GitLab
   implements git.GitRepoManager<GitLabRepoIdentity, GitLabRepo> {
+  readonly apiDiags = shc.defaultHttpClientDiags({ verbose: false });
+
   constructor(readonly server: GitLabServer) {
   }
   repo(identity: GitLabRepoIdentity): GitLabRepo {
     return new GitLabRepo(this, identity);
   }
-}
-
-export interface GitLabRepoTag {
-  readonly name: string;
-}
-
-export type GitLabRepoTags = GitLabRepoTag[];
-
-/**
- * Make sure that the object passed is in is an array and that each
- * element of the array is an object with a "name" property
- * @param o object passed in from HTTP client fetch
- */
-export function isGitLabRepoTags(o: unknown): o is GitLabRepoTags {
-  return o && Array.isArray(o) &&
-    o.filter((tag) => typeof tag !== "object" || !("name" in tag)).length == 0;
 }
 
 export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
@@ -128,8 +115,8 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
   readonly isManagedGitRepo = true;
   readonly tagsFetch: shc.SafeFetchJSON<
     GitLabHttpClientContext,
-    GitLabRepoTags,
-    GitLabRepoTags
+    gls.GitLabRepoTags,
+    gls.GitLabRepoTags
   >;
 
   constructor(readonly manager: GitLab, readonly identity: GitLabRepoIdentity) {
@@ -162,7 +149,7 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
       repo: this,
       request: this.apiURL("tags"),
       requestInit: this.apiRequestInit(),
-    }, isGitLabRepoTags);
+    }, gls.isGitLabRepoTags);
     if (glTags) {
       const result: git.GitTags = {
         gitRepoTags: [],
