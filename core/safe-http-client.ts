@@ -41,11 +41,11 @@ export interface HttpClient<
   readonly fetchJSON: SafeFetchJSON<C, T, ReplaceT>;
 }
 
-export function defaultHttpClientDiags<C extends HttpClientContext, CDT>(
-  options?: Partial<HttpClientDiagnostics<C, CDT>> & {
+export function defaultHttpClientDiags<C extends HttpClientContext, ReplaceT>(
+  options?: Partial<HttpClientDiagnostics<C, ReplaceT>> & {
     verbose?: boolean;
   },
-): HttpClientDiagnostics<C, CDT> {
+): HttpClientDiagnostics<C, ReplaceT> {
   const verbose = typeof options?.verbose === "undefined"
     ? true
     : options.verbose;
@@ -55,17 +55,21 @@ export function defaultHttpClientDiags<C extends HttpClientContext, CDT>(
         return resp.status == 200;
       }),
     onInvalidContent: options?.onInvalidContent ||
-      ((ctx: HttpClientContext, o: unknown, res: Response): CDT | undefined => {
+      ((
+        ctx: HttpClientContext,
+        o: unknown,
+        res: Response,
+      ): ReplaceT | undefined => {
         if (verbose) console.error(`Invalid content at ${res.url}: ${o}`);
         return undefined;
       }),
     onInvalidResponse: options?.onInvalidResponse ||
-      ((ctx: HttpClientContext, resp: Response): CDT | undefined => {
+      ((ctx: HttpClientContext, resp: Response): ReplaceT | undefined => {
         if (verbose) console.warn(`${resp.url} invalid status: ${resp.status}`);
         return undefined;
       }),
     onException: options?.onException ||
-      ((ctx: HttpClientContext, err: Error): CDT | undefined => {
+      ((ctx: HttpClientContext, err: Error): ReplaceT | undefined => {
         if (verbose) {
           console.error(`${ctx.request.toString()} exception: ${err}`);
         }
