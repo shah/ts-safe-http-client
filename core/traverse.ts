@@ -1,7 +1,6 @@
 import * as enh from "./enhance.ts";
 
-// TODO: add option to apply random user agent to HTTP header
-// TODO: add file downloads and other functions from uniform-resource
+// TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
 export type RequestInfoEnhancer = enh.EnhancerSync<
   TraverseContext,
@@ -112,18 +111,6 @@ export function isTraversalStructuredContent(
   return "isStructuredContent" in o;
 }
 
-export interface TraversalJsonContent<T> extends TraversalStructuredContent {
-  readonly jsonInstance: T;
-  readonly guard?: DetectJsonContentGuard<T>;
-  readonly onGuardFailure?: DetectJsonContentGuardFailure<T>;
-}
-
-export function isTraversalJsonContent<T>(
-  o: TraversalResult,
-): o is TraversalJsonContent<T> {
-  return "jsonInstance" in o;
-}
-
 export interface TraversalTextContent extends TraversalContent {
   readonly isHtmlContent: boolean;
   readonly bodyText: string;
@@ -232,55 +219,6 @@ export class DetectTextContent implements TraversalResultEnhancer {
   }
 }
 
-// TODO: Add strongly-typed validation libraries in guards
-// * [Computed-Types](https://github.com/neuledge/computed-types)
-// * [segno (Segnosaurus)](https://segno.js.org/) validation library
-// * [garn\-validator](https://github.com/jupegarnica/garn-validator)
-//
-// TODO: Add JSON "cleansing" and transformation for further safety
-// * [json\-patch\-es6](https://www.skypack.dev/npm/json-patch-es6)
-// * [JSON\-Patch](https://github.com/Starcounter-Jack/JSON-Patch)
-
-export interface DetectJsonContentGuard<T> {
-  (o: unknown, instance: SuccessfulTraversal): o is T;
-}
-
-export interface DetectJsonContentGuardFailure<T> {
-  (instance: SuccessfulTraversal): T | undefined;
-}
-
-export class DetectJsonContent<T> implements TraversalResultEnhancer {
-  constructor(
-    readonly guard?: DetectJsonContentGuard<T>,
-    readonly onGuardFailure?: DetectJsonContentGuardFailure<T>,
-  ) {
-  }
-
-  isProperContentType(instance: TraversalContent): boolean {
-    return instance.contentType.startsWith("application/json");
-  }
-
-  async enhance(
-    ctx: TraverseContext,
-    instance: SuccessfulTraversal,
-  ): Promise<SuccessfulTraversal | TraversalTextContent> {
-    instance = await ValidateStatus.singleton.enhance(ctx, instance);
-    if (isTraversalJsonContent(instance)) return instance;
-    if (isTraversalContent(instance)) {
-      if (this.isProperContentType(instance)) {
-        const textContent: TraversalJsonContent<T> = {
-          ...instance,
-          isStructuredContent: true,
-          jsonInstance: await instance.response.json(),
-          guard: this.guard,
-          onGuardFailure: this.onGuardFailure,
-        };
-        return textContent;
-      }
-    }
-    return instance;
-  }
-}
 export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
   static readonly singleton = new DetectMetaRefreshRedirect();
 
