@@ -1,7 +1,7 @@
 import { testingAsserts as ta } from "../deps-test.ts";
 import * as mod from "./mod.ts";
 
-Deno.test(`Test URL follow/transform: "https://t.co/ELrZmo81wI"`, async () => {
+Deno.test(`URL follow/transform: "https://t.co/ELrZmo81wI"`, async () => {
   const result = await mod.traverse({
     request: "https://t.co/ELrZmo81wI",
     options: mod.defaultTraverseOptions(),
@@ -26,16 +26,17 @@ export function isGitHubRepoTags(o: unknown): o is GitHubRepoTags {
     o.filter((tag) => typeof tag !== "object" || !("name" in tag)).length == 0;
 }
 
-Deno.test(`Test safe HTTP request with JSON type guard`, async () => {
+Deno.test(`typesafe HTTP request with JSON type guard`, async () => {
   const endpoint = `https://api.github.com/repos/shah/ts-safe-http-client/tags`;
-  const tags = await mod.safeFetchJSON(
+  const tags = await mod.safeFetchJSON<GitHubRepoTags>(
     { request: endpoint },
     mod.jsonTraverseOptions({ guard: isGitHubRepoTags }),
   );
   ta.assert(tags);
+  ta.assert(tags.length > 0);
 });
 
-Deno.test(`Test invalid HTTP request (bad URL) with JSON type guard`, async () => {
+Deno.test(`invalid HTTP request (bad URL) with JSON type guard`, async () => {
   const endpoint = `https://api.github.com/repos/shah/bad-repo-name/tags`;
   let invalidResultEncountered = false;
   let invalidJsonEncountered = false;
@@ -58,7 +59,7 @@ Deno.test(`Test invalid HTTP request (bad URL) with JSON type guard`, async () =
   ta.assert(!invalidJsonEncountered, "onInvalidJSON should not be encountered");
 });
 
-Deno.test(`Test valid HTTP request (bad URL) with failed JSON type guard`, async () => {
+Deno.test(`valid HTTP request with failed JSON type guard`, async () => {
   const endpoint =
     `https://api.github.com/repos/shah/ts-safe-http-client/contributors`;
   let invalidResultEncountered = false;

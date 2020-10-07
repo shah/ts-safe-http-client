@@ -8,6 +8,7 @@ export type GitLabRepoID = string;
 export type GitLabRepoURL = string;
 
 export interface GitLabServerAuthn {
+  readonly glServerUserNamePasswdAvailable: () => boolean;
   readonly glServerUserNamePassword: () => [user: string, passwd: string];
 }
 
@@ -19,6 +20,11 @@ export function envVarAuthnAccessToken(
   },
 ): GitLabServerAuthn {
   return {
+    glServerUserNamePasswdAvailable: (): boolean => {
+      const userName = Deno.env.get(`${varPrefix}USERNAME`);
+      const password = Deno.env.get(`${varPrefix}PASSWORD`);
+      return userName != undefined && password != undefined;
+    },
     glServerUserNamePassword: (): [string, string] => {
       const userName = Deno.env.get(`${varPrefix}USERNAME`);
       const password = Deno.env.get(`${varPrefix}PASSWORD`);
@@ -40,6 +46,9 @@ export function staticAuthnAccessToken(
   password: string,
 ): GitLabServerAuthn {
   return {
+    glServerUserNamePasswdAvailable: (): boolean => {
+      return true;
+    },
     glServerUserNamePassword: (): [string, string] => {
       return [userName, password];
     },

@@ -1,20 +1,27 @@
 import { testingAsserts as ta } from "../deps-test.ts";
 import * as gl from "./mod.ts";
 
+const glServerAuthn = gl.envVarAuthnAccessToken("TSHC_GLPAT_", {
+  userNamePassword: ["user", "password"],
+  reporter: (message: string): void => {
+    console.error(message);
+    glServerValid = false;
+  },
+});
+
+ta.assert(
+  glServerAuthn.glServerUserNamePasswdAvailable(),
+  "TSHC_GLPAT_* environment variables not available, try 'source $HOME/.engrsb/secrets.env'",
+);
+
 let glServerValid = true;
 const glServer = gl.envVarGitLabServer(
   "TSHC_GLSERVER_HOST",
-  gl.envVarAuthnAccessToken("TSHC_GLPAT_", {
-    userNamePassword: ["user", "password"],
-    reporter: (message: string): void => {
-      console.error(message);
-      glServerValid = false;
-    },
-  }),
+  glServerAuthn,
 );
 
-Deno.test(`Test GitLabRepo builders`, async () => {
-  ta.assert(glServer);
+Deno.test(`GitLabRepo builders`, async () => {
+  ta.assert(glServer, "GitLab Server not available");
   const gitLab = new gl.GitLab(glServer);
   const repo = gitLab.repo(
     { group: "netspective-studios", repo: "netspective-workspaces" },
@@ -23,8 +30,8 @@ Deno.test(`Test GitLabRepo builders`, async () => {
   ta.assert(repo.url());
 });
 
-Deno.test(`Test valid GitLab repo tags`, async () => {
-  ta.assert(glServer);
+Deno.test(`valid GitLab repo tags`, async () => {
+  ta.assert(glServer, "GitLab Server not available");
   const gitLab = new gl.GitLab(glServer);
   const repo = gitLab.repo(
     { group: "netspective-studios", repo: "netspective-workspaces" },

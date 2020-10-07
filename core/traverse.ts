@@ -232,6 +232,15 @@ export class DetectTextContent implements TraversalResultEnhancer {
   }
 }
 
+// TODO: Add strongly-typed validation libraries in guards
+// * [Computed-Types](https://github.com/neuledge/computed-types)
+// * [segno (Segnosaurus)](https://segno.js.org/) validation library
+// * [garn\-validator](https://github.com/jupegarnica/garn-validator)
+//
+// TODO: Add JSON "cleansing" and transformation for further safety
+// * [json\-patch\-es6](https://www.skypack.dev/npm/json-patch-es6)
+// * [JSON\-Patch](https://github.com/Starcounter-Jack/JSON-Patch)
+
 export interface DetectJsonContentGuard<T> {
   (o: unknown, instance: SuccessfulTraversal): o is T;
 }
