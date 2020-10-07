@@ -75,6 +75,12 @@ export interface SuccessfulTraversal extends TraversalResult {
   readonly terminalURL: string;
 }
 
+export function isSuccessfulTraversal(
+  o: TraversalResult,
+): o is InvalidHttpStatus {
+  return "response" in o && "terminalURL" in o;
+}
+
 export interface InvalidHttpStatus extends SuccessfulTraversal {
   readonly invalidHttpStatus: number;
 }

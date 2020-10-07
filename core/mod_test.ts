@@ -82,3 +82,26 @@ Deno.test(`valid HTTP request with failed JSON type guard`, async () => {
   ta.assert(!invalidResultEncountered, "onInvalidResult should not be called");
   ta.assert(invalidJsonEncountered, "onInvalidJSON should be encountered");
 });
+
+Deno.test(`valid HTTP request with favIcon supplier`, async () => {
+  const endpoint = `https://www.netspective.com/about-us/`;
+  const result = await mod.traverse(
+    {
+      request: endpoint,
+      options: { trEnhancer: mod.TraversalResultFavIconEnhancer.followOnly },
+    },
+  );
+  ta.assert(result, "result should be defined");
+  ta.assert(
+    mod.isTraveralResultFavIcon(result),
+    "result should be a TraveralResultFavIcon",
+  );
+  ta.assert(
+    mod.isSuccessfulTraversal(result.favIconResult),
+    "result.favIconResult should be a successful traversal",
+  );
+  ta.assertEquals(
+    result.favIconResult.terminalURL,
+    "https://www.netspective.com/favicon.ico",
+  );
+});

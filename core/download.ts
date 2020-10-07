@@ -64,6 +64,7 @@ export function isDownloadIndeterminateFileResult(
 }
 
 // TODO: implement file download
+// * see alos: https://github.com/denoland/deno/blob/master/std/mime/multipart.ts
 // * see also: https://github.com/tomholford/media-downloader
 
 // export interface Downloader {
@@ -260,42 +261,5 @@ export function isDownloadIndeterminateFileResult(
 //       }
 //     }
 //     return resource;
-//   }
-// }
-
-// export interface FavIconSupplier {
-//   readonly favIconResource: UniformResource;
-// }
-
-// export function isFavIconSupplier(o: unknown): o is FavIconSupplier {
-//   return o && "favIconResource" in o;
-// }
-
-// export class FavIconResource implements UniformResourceTransformer {
-//   static readonly followOnly = new FavIconResource(
-//     p.pipe(FollowRedirectsGranular.singleton),
-//   );
-//   static readonly followAndDownload = new FavIconResource(
-//     p.pipe(FollowRedirectsGranular.singleton, DownloadContent.singleton),
-//   );
-
-//   constructor(readonly transformer: UniformResourceTransformer) {
-//   }
-
-//   async flow(
-//     _: ResourceTransformerContext,
-//     resource: UniformResource,
-//   ): Promise<UniformResource | (UniformResource & FavIconSupplier)> {
-//     const favIconURL = new URL(resource.uri);
-//     favIconURL.pathname = "/favicon.ico";
-//     const fir = await acquireResource({
-//       uri: favIconURL.href,
-//       transformer: this.transformer,
-//       provenance: { provenanceURN: resource.uri },
-//     });
-//     return {
-//       ...resource,
-//       favIconResource: fir,
-//     };
 //   }
 // }
