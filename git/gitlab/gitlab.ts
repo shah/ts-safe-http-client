@@ -90,17 +90,8 @@ export interface GitLabHttpClientResult
   extends git.ManagedGitRepoEndpointResult {
 }
 
-export class GitLabRepoHttpClient extends shc.SafeHttpClient<
-  GitLabHttpClientContext,
-  GitLabHttpClientResult,
-  GitLabHttpClientResult
-> {
-}
-
 export class GitLab
   implements git.GitRepoManager<GitLabRepoIdentity, GitLabRepo> {
-  readonly apiDiags = shc.defaultHttpClientDiags({ verbose: false });
-
   constructor(readonly server: GitLabServer) {
   }
   repo(identity: GitLabRepoIdentity): GitLabRepo {
@@ -113,11 +104,7 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
   readonly isGitHubRepo = true;
   readonly isRemoteGitRepo = true;
   readonly isManagedGitRepo = true;
-  readonly tagsFetch: shc.SafeFetchJSON<
-    GitLabHttpClientContext,
-    gls.GitLabRepoTags,
-    gls.GitLabRepoTags
-  >;
+  readonly tagsFetch: shc.SafeFetchJSON<gls.GitLabRepoTags>;
 
   constructor(readonly manager: GitLab, readonly identity: GitLabRepoIdentity) {
     this.tagsFetch = shc.safeFetchJSON;
@@ -144,12 +131,16 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
   }
 
   async repoTags(): Promise<git.GitTags | undefined> {
-    const glTags = await this.tagsFetch({
+    const glCtx: GitLabHttpClientContext = {
       isManagedGitRepoEndpointContext: true,
       repo: this,
       request: this.apiURL("tags"),
       requestInit: this.apiRequestInit(),
-    }, gls.isGitLabRepoTags);
+      options: shc.jsonTraverseOptions<gls.GitLabRepoTags>(
+        { guard: gls.isGitLabRepoTags },
+      ),
+    };
+    const glTags = await this.tagsFetch(glCtx);
     if (glTags) {
       const result: git.GitTags = {
         gitRepoTags: [],

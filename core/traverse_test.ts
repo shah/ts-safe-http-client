@@ -1,76 +1,83 @@
-import { assert } from "https://deno.land/std@0.70.0/_util/assert.ts";
-import { assertEquals } from "https://deno.land/std@0.70.0/testing/asserts.ts";
 import { testingAsserts as ta } from "../deps-test.ts";
-import * as mod from "./traverse.ts";
+import * as mod from "./mod.ts";
 
 Deno.test(`Test URL follow/transform: "https://t.co/ELrZmo81wI"`, async () => {
   const result = await mod.traverse({
     request: "https://t.co/ELrZmo81wI",
     options: mod.defaultTraverseOptions(),
   });
-  console.dir(result);
-  //   if (mod.isTraversalContent(result)) {
-  //     console.log(result.bodyText);
-  //   }
+  ta.assert(!mod.isInvalidHttpStatus(result));
+  ta.assert(mod.isTraversalContent(result));
 });
 
-// export interface Guard<I, T extends I> {
-//   (o: I): o is T;
-// }
+export interface GitHubRepoTag {
+  readonly name: string;
+}
 
-// export interface UrlTestCase<T extends mod.TraversalResult = mod.TraversalResult> {
-//   readonly originalURL: string;
-//   readonly resultsExpected: Guard<mod.TraversalResult, T>[];
-//   readonly expectTerminalURL?: string;
-// }
+export type GitHubRepoTags = GitHubRepoTag[];
 
-// const testCases: UrlTestCase[] = [
-//   {
-//     originalURL:
-//       "http://ui.constantcontact.com/sa/fwtf.jsp?llr=jwcorpsab&m=1119360584393&ea=periodicals%2Bhealthit-answersmedianetwork%40medigy.cc&a=1134632546554",
-//     resultsExpected: [mod.isContentRedirectResult, mod.isTerminalResult],
-//     expectTerminalURL:
-//       "http://ui.constantcontact.com/sa/fwtf.jsp?llr=jwcorpsab&m=1119360584393&ea=periodicals%2Bhealthit-answersmedianetwork%40medigy.cc&a=1134632546554",
-//   },
-//   {
-//     originalURL: "https://t.co/ELrZmo81wI",
-//     resultsExpected: [mod.isContentRedirectResult, mod.isTerminalResult],
-//     expectTerminalURL:
-//       "https://www.foxnews.com/lifestyle/photo-of-donald-trump-look-alike-in-spain-goes-viral",
-//   },
-// ];
+/**
+ * Make sure that the object passed is in is an array and that each
+ * element of the array is an object with a "name" property
+ * @param o object passed in from HTTP client fetch
+ */
+export function isGitHubRepoTags(o: unknown): o is GitHubRepoTags {
+  return o && Array.isArray(o) &&
+    o.filter((tag) => typeof tag !== "object" || !("name" in tag)).length == 0;
+}
 
-// for (const testCase of testCases) {
-//   Deno.test(`Test URL follow/transform: ${testCase.originalURL}`, async () => {
-//     const { originalURL, resultsExpected, expectTerminalURL } = testCase;
-//     const results = await mod.traverse(originalURL);
-//     ta.assertEquals(
-//       results.length,
-//       resultsExpected.length,
-//       `${results.length} results encountered, should be ${resultsExpected.length}: ${results}`,
-//     );
-//     let foundTerminal: mod.TerminalResult | undefined = undefined;
-//     for (let i = 0; i < results.length; i++) {
-//       const encountered = results[i];
-//       const expected = resultsExpected[i];
-//       ta.assert(expected(encountered));
-//       if (mod.isTerminalResult(encountered)) {
-//         foundTerminal = encountered;
-//       }
-//     }
-//     if (expectTerminalURL) {
-//       assert(
-//         foundTerminal,
-//         `a terminal URL is expected for '${testCase.originalURL}': ${expectTerminalURL}`,
-//       );
-//       const terminalURL = mod.isRedirectResult(foundTerminal)
-//         ? foundTerminal.redirectUrl
-//         : foundTerminal.url;
-//       assertEquals(
-//         terminalURL,
-//         expectTerminalURL,
-//         `terminal URL is expected to be '${expectTerminalURL}', not '${terminalURL}'`,
-//       );
-//     }
-//   });
-// }
+Deno.test(`Test safe HTTP request with JSON type guard`, async () => {
+  const endpoint = `https://api.github.com/repos/shah/ts-safe-http-client/tags`;
+  const tags = await mod.safeFetchJSON(
+    { request: endpoint },
+    mod.jsonTraverseOptions({ guard: isGitHubRepoTags }),
+  );
+  ta.assert(tags);
+});
+
+Deno.test(`Test invalid HTTP request (bad URL) with JSON type guard`, async () => {
+  const endpoint = `https://api.github.com/repos/shah/bad-repo-name/tags`;
+  let invalidResultEncountered = false;
+  let invalidJsonEncountered = false;
+  const tags = await mod.safeFetchJSON(
+    { request: endpoint },
+    mod.jsonTraverseOptions({
+      guard: isGitHubRepoTags,
+      onGuardFailure: (json: unknown): undefined => {
+        invalidJsonEncountered = true;
+        return undefined;
+      },
+    }),
+    (tr: mod.TraversalResult): undefined => {
+      invalidResultEncountered = true;
+      return undefined;
+    },
+  );
+  ta.assert(tags === undefined, "result should be undefined");
+  ta.assert(invalidResultEncountered, "onInvalidResult should be called");
+  ta.assert(!invalidJsonEncountered, "onInvalidJSON should not be encountered");
+});
+
+Deno.test(`Test valid HTTP request (bad URL) with failed JSON type guard`, async () => {
+  const endpoint =
+    `https://api.github.com/repos/shah/ts-safe-http-client/contributors`;
+  let invalidResultEncountered = false;
+  let invalidJsonEncountered = false;
+  const contributors = await mod.safeFetchJSON(
+    { request: endpoint },
+    mod.jsonTraverseOptions({
+      guard: isGitHubRepoTags, // give it a guard that will fail
+      onGuardFailure: (json: unknown): undefined => {
+        invalidJsonEncountered = true;
+        return undefined;
+      },
+    }),
+    (tr: mod.TraversalResult): undefined => {
+      invalidResultEncountered = true;
+      return undefined;
+    },
+  );
+  ta.assert(contributors === undefined, "result should be undefined");
+  ta.assert(!invalidResultEncountered, "onInvalidResult should not be called");
+  ta.assert(invalidJsonEncountered, "onInvalidJSON should be encountered");
+});

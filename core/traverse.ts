@@ -1,5 +1,8 @@
 import * as enh from "./enhance.ts";
 
+// TODO: add option to apply random user agent to HTTP header
+// TODO: add file downloads and other functions from uniform-resource
+
 export type RequestInfoEnhancer = enh.EnhancerSync<
   TraverseContext,
   RequestInfo
@@ -90,8 +93,8 @@ export interface TraversalContent extends SuccessfulTraversal {
 
 export function isTraversalContent(
   o: TraversalResult,
-): o is TraversalTextContent {
-  return "bodyText" in o;
+): o is TraversalContent {
+  return "httpStatus" in o && "contentType" in o;
 }
 
 export type TraversalContentEnhancer = enh.Enhancer<
@@ -99,15 +102,37 @@ export type TraversalContentEnhancer = enh.Enhancer<
   TraversalContent
 >;
 
+export interface TraversalStructuredContent extends TraversalContent {
+  readonly isStructuredContent: boolean;
+}
+
+export function isTraversalStructuredContent(
+  o: TraversalResult,
+): o is TraversalStructuredContent {
+  return "isStructuredContent" in o;
+}
+
+export interface TraversalJsonContent<T> extends TraversalStructuredContent {
+  readonly jsonInstance: T;
+  readonly guard?: DetectJsonContentGuard<T>;
+  readonly onGuardFailure?: DetectJsonContentGuardFailure<T>;
+}
+
+export function isTraversalJsonContent<T>(
+  o: TraversalResult,
+): o is TraversalJsonContent<T> {
+  return "jsonInstance" in o;
+}
+
 export interface TraversalTextContent extends TraversalContent {
   readonly isHtmlContent: boolean;
   readonly bodyText: string;
 }
 
 export function isTraversalTextContent(
-  r: SuccessfulTraversal,
-): r is TraversalTextContent {
-  return "bodyText" in r;
+  o: TraversalResult,
+): o is TraversalTextContent {
+  return "bodyText" in o;
 }
 
 export interface TraversalContentRedirect extends TransformedTraversalResult {
@@ -162,10 +187,11 @@ export class ValidateStatus implements TraversalResultEnhancer {
     }
 
     if (instance.response.status == 200) {
+      const contentType = instance.response.headers.get("Content-Type");
       const result: TraversalContent = {
         ...instance,
         httpStatus: instance.response.status,
-        contentType: instance.response.headers.get("Content-Type")!,
+        contentType: contentType ? contentType.trim() : "",
       };
       return result;
     }
@@ -181,6 +207,10 @@ export class ValidateStatus implements TraversalResultEnhancer {
 export class DetectTextContent implements TraversalResultEnhancer {
   static readonly singleton = new DetectTextContent();
 
+  isProperContentType(instance: TraversalContent): boolean {
+    return instance.contentType.startsWith("text/");
+  }
+
   async enhance(
     ctx: TraverseContext,
     instance: SuccessfulTraversal,
@@ -188,13 +218,12 @@ export class DetectTextContent implements TraversalResultEnhancer {
     instance = await ValidateStatus.singleton.enhance(ctx, instance);
     if (isTraversalTextContent(instance)) return instance;
     if (isTraversalContent(instance)) {
-      if (instance.contentType.startsWith("text/html")) {
+      if (this.isProperContentType(instance)) {
         const bodyText = await instance.response.text();
         const textContent: TraversalTextContent = {
           ...instance,
-          httpStatus: instance.response.status,
           bodyText: bodyText,
-          isHtmlContent: true,
+          isHtmlContent: instance.contentType.startsWith("text/html"),
         };
         return textContent;
       }
@@ -203,6 +232,46 @@ export class DetectTextContent implements TraversalResultEnhancer {
   }
 }
 
+export interface DetectJsonContentGuard<T> {
+  (o: unknown, instance: SuccessfulTraversal): o is T;
+}
+
+export interface DetectJsonContentGuardFailure<T> {
+  (instance: SuccessfulTraversal): T | undefined;
+}
+
+export class DetectJsonContent<T> implements TraversalResultEnhancer {
+  constructor(
+    readonly guard?: DetectJsonContentGuard<T>,
+    readonly onGuardFailure?: DetectJsonContentGuardFailure<T>,
+  ) {
+  }
+
+  isProperContentType(instance: TraversalContent): boolean {
+    return instance.contentType.startsWith("application/json");
+  }
+
+  async enhance(
+    ctx: TraverseContext,
+    instance: SuccessfulTraversal,
+  ): Promise<SuccessfulTraversal | TraversalTextContent> {
+    instance = await ValidateStatus.singleton.enhance(ctx, instance);
+    if (isTraversalJsonContent(instance)) return instance;
+    if (isTraversalContent(instance)) {
+      if (this.isProperContentType(instance)) {
+        const textContent: TraversalJsonContent<T> = {
+          ...instance,
+          isStructuredContent: true,
+          jsonInstance: await instance.response.json(),
+          guard: this.guard,
+          onGuardFailure: this.onGuardFailure,
+        };
+        return textContent;
+      }
+    }
+    return instance;
+  }
+}
 export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
   static readonly singleton = new DetectMetaRefreshRedirect();
 

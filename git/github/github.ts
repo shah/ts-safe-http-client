@@ -20,13 +20,6 @@ export interface GitHubHttpClientResult
   extends git.ManagedGitRepoEndpointResult {
 }
 
-export class GitHubRepoHttpClient extends shc.SafeHttpClient<
-  GitHubHttpClientContext,
-  GitHubHttpClientResult,
-  GitHubHttpClientResult
-> {
-}
-
 export class GitHub
   implements git.GitRepoManager<GitHubRepoIdentity, GitHubRepo> {
   static readonly singleton = new GitHub();
@@ -57,11 +50,7 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isGitHubRepo = true;
   readonly isRemoteGitRepo = true;
   readonly isManagedGitRepo = true;
-  readonly tagsFetch: shc.SafeFetchJSON<
-    GitHubHttpClientContext,
-    GitHubRepoTags,
-    GitHubRepoTags
-  >;
+  readonly tagsFetch: shc.SafeFetchJSON<GitHubRepoTags>;
 
   constructor(readonly identity: GitHubRepoIdentity) {
     this.tagsFetch = shc.safeFetchJSON;
@@ -76,11 +65,15 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   }
 
   async repoTags(): Promise<git.GitTags | undefined> {
-    const ghTags = await this.tagsFetch({
+    const ghCtx: GitHubHttpClientContext = {
       isManagedGitRepoEndpointContext: true,
       repo: this,
       request: this.apiURL("tags"),
-    }, isGitHubRepoTags);
+      options: shc.jsonTraverseOptions<GitHubRepoTags>(
+        { guard: isGitHubRepoTags },
+      ),
+    };
+    const ghTags = await this.tagsFetch(ghCtx);
     if (ghTags) {
       const result: git.GitTags = {
         gitRepoTags: [],

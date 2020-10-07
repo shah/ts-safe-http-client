@@ -15,19 +15,12 @@ export interface RemoteGitRepo extends GitRepo {
   readonly url: () => GitRepoRemoteURL;
 }
 
-export interface ManagedGitRepoEndpointContext extends shc.HttpClientContext {
+export interface ManagedGitRepoEndpointContext extends shc.TraverseContext {
   readonly isManagedGitRepoEndpointContext: true;
 }
 
 export interface ManagedGitRepoEndpointResult {
   readonly isManagedGitRepoEndpointResult: true;
-}
-
-export interface ManagedGitRepoEndpoint<
-  C extends ManagedGitRepoEndpointContext,
-  T extends ManagedGitRepoEndpointResult,
-> extends shc.HttpClient<C, T, T> {
-  readonly isManagedGitRepoEndpoint: true;
 }
 
 // deno-lint-ignore no-empty-interface
