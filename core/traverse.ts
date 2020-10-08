@@ -1,6 +1,6 @@
 import * as enh from "./enhance.ts";
 import { fs, io, mediaTypes, path, uuid } from "./deps.ts";
-import { copySync } from "https://deno.land/std@0.70.0/fs/copy.ts";
+import * as html from "./html.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
@@ -38,6 +38,7 @@ export interface TraverseContext extends Requestable, Labelable {
 export interface TraverseOptions {
   readonly trEnhancer: TraversalResultEnhancer;
   readonly riEnhancer?: RequestInfoEnhancer;
+  readonly htmlContentEnhancer?: html.HtmlContentEnhancer;
 }
 
 export interface TraversalResult extends Requestable, Labelable {
@@ -122,7 +123,6 @@ export function isTraversalStructuredContent(
 }
 
 export interface TraversalTextContent extends TraversalContent {
-  readonly isHtmlContent: boolean;
   readonly bodyText: string;
 }
 
@@ -130,6 +130,16 @@ export function isTraversalTextContent(
   o: TraversalResult,
 ): o is TraversalTextContent {
   return "bodyText" in o;
+}
+
+export interface TraversalHtmlContent extends TraversalTextContent {
+  readonly htmlContent: html.HtmlContent;
+}
+
+export function isTraversalHtmlContent(
+  o: TraversalResult,
+): o is TraversalHtmlContent {
+  return isTraversalTextContent(o) && "htmlContent" in o;
 }
 
 export interface TraversalContentRedirect extends TransformedTraversalResult {
@@ -222,6 +232,20 @@ export class DetectTextContent implements TraversalResultEnhancer {
     return instance.contentType.startsWith("text/");
   }
 
+  async htmlContent(
+    ctx: TraverseContext,
+    instance: TraversalContent,
+    bodyText: string,
+  ): Promise<html.HtmlContent | undefined> {
+    if (instance.contentType.startsWith("text/html")) {
+      return ctx.options.htmlContentEnhancer?.enhance({
+        uri: instance.terminalURL,
+        htmlSource: bodyText,
+      });
+    }
+    return undefined;
+  }
+
   async enhance(
     ctx: TraverseContext,
     instance: SuccessfulTraversal,
@@ -231,16 +255,22 @@ export class DetectTextContent implements TraversalResultEnhancer {
     if (isTraversalContent(instance)) {
       if (this.isProperContentType(instance)) {
         const bodyText = await instance.response.text();
-        const textContent: TraversalTextContent = {
+        let result: TraversalTextContent | TraversalHtmlContent = {
           ...instance,
           bodyText: bodyText,
-          isHtmlContent: instance.contentType.startsWith("text/html"),
           writeContent: async (writer: Deno.Writer): Promise<number> => {
             await writer.write(new TextEncoder().encode(bodyText));
             return bodyText.length;
           },
         };
-        return textContent;
+        const htmlContent = await this.htmlContent(ctx, instance, bodyText);
+        if (htmlContent) {
+          result = {
+            ...result,
+            htmlContent: htmlContent,
+          };
+        }
+        return result;
       }
     }
     return instance;
@@ -269,7 +299,7 @@ export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
     SuccessfulTraversal | TraversalContentRedirect | TraversalTextContent
   > {
     instance = await this.detectTextContent.enhance(ctx, instance);
-    if (isTraversalTextContent(instance) && instance.isHtmlContent) {
+    if (isTraversalHtmlContent(instance)) {
       const contentRedirectUrl = this.extractMetaRefreshUrl(instance.bodyText);
       if (contentRedirectUrl) {
         const redirected = await traverse(
@@ -289,35 +319,23 @@ export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
   }
 }
 
-export class EnhanceContent implements TraversalResultEnhancer {
-  constructor(readonly contentEnhancer: TraversalContentEnhancer) {
-  }
-
-  async enhance(
-    ctx: TraverseContext,
-    instance: SuccessfulTraversal,
-  ): Promise<SuccessfulTraversal | TraversalContent> {
-    if (isTraversalContent(instance)) {
-      return await this.contentEnhancer.enhance(ctx, instance);
-    }
-    return instance;
-  }
-}
-
 export function defaultTraverseOptions(
-  override?: Partial<TraverseOptions> & {
-    readonly contentEnhancers: TraversalContentEnhancer[];
-  },
+  override?: Partial<TraverseOptions>,
 ): TraverseOptions {
   return {
     trEnhancer: override?.trEnhancer ||
       enh.enhancer(
         RemoveLabelLineBreaksAndTrimSpaces.singleton,
         DetectMetaRefreshRedirect.singleton,
-        new EnhanceContent(enh.enhancer(...(override?.contentEnhancers || []))),
       ),
     riEnhancer: override?.riEnhancer ||
       enh.enhancerSync(RemoveUrlTrackingCodes.singleton),
+    htmlContentEnhancer: override?.htmlContentEnhancer ||
+      enh.enhancer(
+        html.EnrichQueryableHtmlContent.singleton,
+        html.BuildCuratableContent.singleton,
+        html.StandardizeCurationTitle.singleton,
+      ),
   };
 }
 

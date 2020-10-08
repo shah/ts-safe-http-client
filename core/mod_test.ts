@@ -83,15 +83,26 @@ Deno.test(`valid HTTP request with failed JSON type guard`, async () => {
   ta.assert(invalidJsonEncountered, "onInvalidJSON should be encountered");
 });
 
-Deno.test(`valid HTTP request with favIcon supplier`, async () => {
+Deno.test(`valid HTTP request with HTML Content and favIcon supplier`, async () => {
   const endpoint = `https://www.netspective.com/about-us/`;
+  const options = mod.defaultTraverseOptions();
   const result = await mod.traverse(
     {
       request: endpoint,
-      options: { trEnhancer: mod.TraversalResultFavIconEnhancer.followOnly },
+      options: {
+        ...options,
+        trEnhancer: mod.enhancer(
+          options.trEnhancer,
+          mod.TraversalResultFavIconEnhancer.followOnly,
+        ),
+      },
     },
   );
   ta.assert(result, "result should be defined");
+  ta.assert(
+    mod.isTraversalHtmlContent(result),
+    "result should have HTML content",
+  );
   ta.assert(
     mod.isTraveralResultFavIcon(result),
     "result should be a TraveralResultFavIcon",
@@ -112,7 +123,9 @@ Deno.test(`download image`, async () => {
   const result = await mod.traverse(
     {
       request: endpoint,
-      options: { trEnhancer: mod.TraversalResultDownloader.tempDirDownloader },
+      options: mod.defaultTraverseOptions(
+        { trEnhancer: mod.TraversalResultDownloader.tempDirDownloader },
+      ),
     },
   );
   ta.assert(result, "result should be defined");
@@ -131,8 +144,10 @@ Deno.test(`download PDF`, async () => {
   const endpoint = `http://ceur-ws.org/Vol-1401/paper-05.pdf`;
   const result = await mod.traverse(
     {
-      request: endpoint,
-      options: { trEnhancer: mod.TraversalResultDownloader.tempDirDownloader },
+      request: `http://ceur-ws.org/Vol-1401/paper-05.pdf`,
+      options: mod.defaultTraverseOptions(
+        { trEnhancer: mod.TraversalResultDownloader.tempDirDownloader },
+      ),
     },
   );
   ta.assert(result, "result should be defined");
