@@ -1,4 +1,6 @@
 import * as enh from "./enhance.ts";
+import { fs, io, mediaTypes, path, uuid } from "./deps.ts";
+import { copySync } from "https://deno.land/std@0.70.0/fs/copy.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
@@ -94,6 +96,8 @@ export function isInvalidHttpStatus(
 export interface TraversalContent extends SuccessfulTraversal {
   readonly httpStatus: number;
   readonly contentType: string;
+  readonly contentDisposition?: { [key: string]: string };
+  readonly writeContent: (writer: Deno.Writer) => Promise<number>;
 }
 
 export function isTraversalContent(
@@ -181,10 +185,19 @@ export class ValidateStatus implements TraversalResultEnhancer {
 
     if (instance.response.status == 200) {
       const contentType = instance.response.headers.get("Content-Type");
+      const contentDisp = instance.response.headers.get("Content-Disposition");
       const result: TraversalContent = {
         ...instance,
         httpStatus: instance.response.status,
         contentType: contentType ? contentType.trim() : "",
+        contentDisposition: contentDisp
+          ? contentDispositionParams(contentDisp)
+          : undefined,
+        writeContent: async (writer: Deno.Writer): Promise<number> => {
+          const blob = await instance.response.blob();
+          await Deno.copy(new Deno.Buffer(await blob.arrayBuffer()), writer);
+          return blob.size;
+        },
       };
       return result;
     }
@@ -200,6 +213,11 @@ export class ValidateStatus implements TraversalResultEnhancer {
 export class DetectTextContent implements TraversalResultEnhancer {
   static readonly singleton = new DetectTextContent();
 
+  constructor(
+    readonly statusValidator: ValidateStatus = ValidateStatus.singleton,
+  ) {
+  }
+
   isProperContentType(instance: TraversalContent): boolean {
     return instance.contentType.startsWith("text/");
   }
@@ -208,7 +226,7 @@ export class DetectTextContent implements TraversalResultEnhancer {
     ctx: TraverseContext,
     instance: SuccessfulTraversal,
   ): Promise<SuccessfulTraversal | TraversalTextContent> {
-    instance = await ValidateStatus.singleton.enhance(ctx, instance);
+    instance = await this.statusValidator.enhance(ctx, instance);
     if (isTraversalTextContent(instance)) return instance;
     if (isTraversalContent(instance)) {
       if (this.isProperContentType(instance)) {
@@ -217,6 +235,10 @@ export class DetectTextContent implements TraversalResultEnhancer {
           ...instance,
           bodyText: bodyText,
           isHtmlContent: instance.contentType.startsWith("text/html"),
+          writeContent: async (writer: Deno.Writer): Promise<number> => {
+            await writer.write(new TextEncoder().encode(bodyText));
+            return bodyText.length;
+          },
         };
         return textContent;
       }
@@ -231,6 +253,7 @@ export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
   constructor(
     readonly metaRefreshPattern =
       "(CONTENT|content)=[\"']0;[ ]*(URL|url)=(.*?)([\"']\s*>)",
+    readonly detectTextContent: DetectTextContent = DetectTextContent.singleton,
   ) {
   }
 
@@ -245,7 +268,7 @@ export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
   ): Promise<
     SuccessfulTraversal | TraversalContentRedirect | TraversalTextContent
   > {
-    instance = await DetectTextContent.singleton.enhance(ctx, instance);
+    instance = await this.detectTextContent.enhance(ctx, instance);
     if (isTraversalTextContent(instance) && instance.isHtmlContent) {
       const contentRedirectUrl = this.extractMetaRefreshUrl(instance.bodyText);
       if (contentRedirectUrl) {
@@ -327,4 +350,27 @@ export async function traverse(ctx: TraverseContext): Promise<TraversalResult> {
     };
     return result;
   }
+}
+
+export function contentDispositionParams(
+  cd: string,
+): { [key: string]: string } {
+  const result: { [key: string]: string } = {};
+  const components = decodeURI(cd).split(";");
+  components
+    .slice(1)
+    .map((v: string): string => v.trim())
+    .map((kv: string): void => {
+      const [k, v] = kv.split("=");
+      if (v) {
+        const s = v.charAt(0);
+        const e = v.charAt(v.length - 1);
+        if ((s === e && s === '"') || s === "'") {
+          result[k] = v.substr(1, v.length - 2);
+        } else {
+          result[k] = v;
+        }
+      }
+    });
+  return result;
 }
