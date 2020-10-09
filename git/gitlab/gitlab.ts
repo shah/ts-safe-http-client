@@ -1,4 +1,4 @@
-import type * as git from "../git.ts";
+import * as git from "../git.ts";
 import { safeHttpClient as shc, urlcat } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 
@@ -185,5 +185,19 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
   async repoLatestTag(): Promise<git.GitTag | undefined> {
     const result = await this.repoTags();
     return result ? result.gitRepoTags[0] : undefined;
+  }
+
+  async content(
+    ctx: git.ManagedGitContentContext,
+  ): Promise<git.ManagedGitContent | undefined> {
+    const apiClientCtx = this.apiClientContext(
+      this.groupRepoApiURL(
+        "projects/:encodedGroupRepo/repository/files/:filePath/raw",
+        { filePath: ctx.path, ref: ctx.branchOrTag || "master" },
+      ),
+      shc.defaultTraverseOptions(),
+    );
+    const tr = await shc.traverse(apiClientCtx);
+    return git.prepareManagedGitContent(ctx, apiClientCtx, tr);
   }
 }

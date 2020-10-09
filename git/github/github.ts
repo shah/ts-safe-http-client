@@ -110,4 +110,10 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
     const result = await this.repoTags();
     return result ? result.gitRepoTags[0] : undefined;
   }
+
+  async content(
+    ctx: git.ManagedGitContentContext,
+  ): Promise<git.ManagedGitContent | undefined> {
+    return undefined;
+  }
 }

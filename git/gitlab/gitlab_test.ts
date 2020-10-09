@@ -1,7 +1,9 @@
 import { testingAsserts as ta } from "../deps-test.ts";
-import * as gl from "./mod.ts";
+import { safeHttpClient as shc } from "./deps.ts";
+import * as git from "../mod.ts";
+import * as mod from "./mod.ts";
 
-const glServerAuthn = gl.envVarAuthnAccessToken("TSHC_GLPAT_", {
+const glServerAuthn = mod.envVarAuthnAccessToken("TSHC_GLPAT_", {
   userNamePassword: ["user", "password"],
   reporter: (message: string): void => {
     console.error(message);
@@ -15,14 +17,14 @@ ta.assert(
 );
 
 let glServerValid = true;
-const glServer = gl.envVarGitLabServer(
+const glServer = mod.envVarGitLabServer(
   "TSHC_GLSERVER_HOST",
   glServerAuthn,
 );
 
 Deno.test(`GitLabRepo builders`, async () => {
   ta.assert(glServer, "GitLab Server not available");
-  const gitLab = new gl.GitLab(glServer);
+  const gitLab = new mod.GitLab(glServer);
   const repo = gitLab.repo(
     { group: "netspective-studios", repo: "netspective-workspaces" },
   );
@@ -32,7 +34,7 @@ Deno.test(`GitLabRepo builders`, async () => {
 
 Deno.test(`valid GitLab repo tags`, async () => {
   ta.assert(glServer, "GitLab Server not available");
-  const gitLab = new gl.GitLab(glServer);
+  const gitLab = new mod.GitLab(glServer);
   const repo = gitLab.repo(
     { group: "netspective-studios", repo: "netspective-workspaces" },
   );
@@ -46,13 +48,18 @@ Deno.test(`valid GitLab repo tags`, async () => {
   ta.assert(latestTag, "A latest tag should be available");
 });
 
-// Deno.test(`Test invalid GitLab repo tags`, async () => {
-//   const repo = new gl.GitLabRepo({ group: "shah", repo: "unknown" });
-//   ta.assert(repo);
-
-//   const tags = await repo.repoTags();
-//   ta.assertEquals(tags, undefined, "The tags list should not be found");
-
-//   const latestTag = await repo.repoLatestTag();
-//   ta.assertEquals(latestTag, undefined, "The tag should not be found");
-// });
+Deno.test(`retrieve arbitrary content`, async () => {
+  ta.assert(glServer, "GitLab Server not available");
+  const gitLab = new mod.GitLab(glServer);
+  const repo = gitLab.repo(
+    {
+      group: "netspective-studios/git-ops-experiments",
+      repo: "gitlab-automation-target",
+    },
+  );
+  const result = await repo.content({
+    path: "test-artifacts/ts-lhncbc-lforms/test1-with-error.lhc-form.json",
+  });
+  ta.assert(result);
+  ta.assert(git.isManagedGitJsonFile(result));
+});
