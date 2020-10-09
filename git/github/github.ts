@@ -63,7 +63,7 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
     });
   }
 
-  apiURL(
+  orgRepoApiURL(
     pathTemplate: string,
     params: urlcat.ParamMap = {
       org: this.identity.org,
@@ -77,7 +77,7 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
     const ghCtx: GitHubHttpClientContext = {
       isManagedGitRepoEndpointContext: true,
       repo: this,
-      request: this.apiURL("/repos/:org/:repo/tags"),
+      request: this.orgRepoApiURL("/repos/:org/:repo/tags"),
       options: shc.jsonTraverseOptions<GitHubRepoTags>(
         { guard: isGitHubRepoTags },
       ),

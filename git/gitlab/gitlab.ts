@@ -123,9 +123,10 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     return `https://${this.manager.server.host}/${this.identity.group}/${this.identity.repo}`;
   }
 
-  apiURL(
+  groupRepoApiURL(
     pathTemplate: string,
     params: urlcat.ParamMap = {
+      // GitLab wants the group/sub-group/repo to be a single URL-encode string
       encodedGroupRepo: [this.identity.group, this.identity.repo].join("/"),
     },
   ): string {
@@ -149,7 +150,9 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     const glCtx: GitLabHttpClientContext = {
       isManagedGitRepoEndpointContext: true,
       repo: this,
-      request: this.apiURL("projects/:encodedGroupRepo/repository/tags"),
+      request: this.groupRepoApiURL(
+        "projects/:encodedGroupRepo/repository/tags",
+      ),
       requestInit: this.apiRequestInit(),
       options: shc.jsonTraverseOptions<gls.GitLabRepoTags>(
         { guard: gls.isGitLabRepoTags },
