@@ -1,5 +1,5 @@
 import type * as git from "../git.ts";
-import { safeHttpClient as shc } from "./deps.ts";
+import { safeHttpClient as shc, urlcat } from "./deps.ts";
 
 export type GitHubOrgID = string;
 export type GitHubRepoID = string;
@@ -57,18 +57,27 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   }
 
   url(): git.GitRepoRemoteURL {
-    return `https://github.com/${this.identity.org}/${this.identity.repo}`;
+    return urlcat.default(`https://github.com`, "/:org/:repo", {
+      org: this.identity.org,
+      repo: this.identity.repo,
+    });
   }
 
-  apiURL(path: "tags"): GitHubRepoURL {
-    return `https://api.github.com/repos/${this.identity.org}/${this.identity.repo}/${path}`;
+  apiURL(
+    pathTemplate: string,
+    params: urlcat.ParamMap = {
+      org: this.identity.org,
+      repo: this.identity.repo,
+    },
+  ): string {
+    return urlcat.default("https://api.github.com", pathTemplate, params);
   }
 
   async repoTags(): Promise<git.GitTags | undefined> {
     const ghCtx: GitHubHttpClientContext = {
       isManagedGitRepoEndpointContext: true,
       repo: this,
-      request: this.apiURL("tags"),
+      request: this.apiURL("/repos/:org/:repo/tags"),
       options: shc.jsonTraverseOptions<GitHubRepoTags>(
         { guard: isGitHubRepoTags },
       ),

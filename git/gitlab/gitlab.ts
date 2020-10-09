@@ -1,5 +1,5 @@
 import type * as git from "../git.ts";
-import { safeHttpClient as shc } from "./deps.ts";
+import { safeHttpClient as shc, urlcat } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 
 export type GitLabHostname = string;
@@ -123,11 +123,17 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     return `https://${this.manager.server.host}/${this.identity.group}/${this.identity.repo}`;
   }
 
-  apiURL(path: "tags"): GitLabRepoURL {
-    const encodedRepo = encodeURIComponent(
-      `${this.identity.group}/${this.identity.repo}`,
+  apiURL(
+    pathTemplate: string,
+    params: urlcat.ParamMap = {
+      encodedGroupRepo: [this.identity.group, this.identity.repo].join("/"),
+    },
+  ): string {
+    return urlcat.default(
+      `https://${this.manager.server.host}/api/v4`,
+      pathTemplate,
+      params,
     );
-    return `https://${this.manager.server.host}/api/v4/projects/${encodedRepo}/repository/${path}`;
   }
 
   apiRequestInit(): RequestInit {
@@ -143,7 +149,7 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     const glCtx: GitLabHttpClientContext = {
       isManagedGitRepoEndpointContext: true,
       repo: this,
-      request: this.apiURL("tags"),
+      request: this.apiURL("projects/:encodedGroupRepo/repository/tags"),
       requestInit: this.apiRequestInit(),
       options: shc.jsonTraverseOptions<gls.GitLabRepoTags>(
         { guard: gls.isGitLabRepoTags },

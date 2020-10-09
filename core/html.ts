@@ -1,4 +1,5 @@
 // TODO: putting this into deps.ts did not work, so including it directly here
+// from: https://github.com/justjavac/deno_cheerio
 // @deno-types="https://cdn.jsdelivr.net/gh/justjavac/deno_cheerio/cheerio.d.ts"
 import cheerio from "https://dev.jspm.io/cheerio/index.js";
 import type * as enh from "./enhance.ts";
