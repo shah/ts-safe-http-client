@@ -131,7 +131,7 @@ export interface ManagedGitFile<T> extends ManagedGitContent {
   readonly isManagedGitFile: true;
   readonly traverse: () => Promise<shc.TraversalResult>;
   readonly content: () => Promise<T>;
-  // readonly replace: (content: T) => void;
+  //readonly commit: (content: T) => void;
 }
 
 export function isManagedGitFile<T>(

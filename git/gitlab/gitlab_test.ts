@@ -1,5 +1,4 @@
 import { testingAsserts as ta } from "../deps-test.ts";
-import { safeHttpClient as shc } from "./deps.ts";
 import * as git from "../mod.ts";
 import * as mod from "./mod.ts";
 
@@ -13,7 +12,7 @@ const glServerAuthn = mod.envVarAuthnAccessToken("TSHC_GLPAT_", {
 
 ta.assert(
   glServerAuthn.glServerUserNamePasswdAvailable(),
-  "TSHC_GLPAT_* environment variables not available, try 'source $HOME/.engrsb/secrets.env'",
+  "TSHC_GLPAT_* environment variables not available, try:\n\n    ==> source $HOME/.engrsb/secrets.env\n\n",
 );
 
 let glServerValid = true;
@@ -48,7 +47,7 @@ Deno.test(`valid GitLab repo tags`, async () => {
   ta.assert(latestTag, "A latest tag should be available");
 });
 
-Deno.test(`retrieve arbitrary content`, async () => {
+Deno.test(`retrieve Managed Git JSON`, async () => {
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer);
   const repo = gitLab.repo(
