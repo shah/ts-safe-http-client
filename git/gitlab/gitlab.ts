@@ -119,24 +119,6 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     this.tagsFetch = shc.safeFetchJSON;
   }
 
-  url(): git.GitRepoRemoteURL {
-    return `https://${this.manager.server.host}/${this.identity.group}/${this.identity.repo}`;
-  }
-
-  groupRepoApiURL(
-    pathTemplate: string,
-    params: urlcat.ParamMap = {
-      // GitLab wants the group/sub-group/repo to be a single URL-encode string
-      encodedGroupRepo: [this.identity.group, this.identity.repo].join("/"),
-    },
-  ): string {
-    return urlcat.default(
-      `https://${this.manager.server.host}/api/v4`,
-      pathTemplate,
-      params,
-    );
-  }
-
   apiRequestInit(): RequestInit {
     const authn = this.manager.server.authn.glServerUserNamePassword();
     return {
@@ -146,19 +128,48 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     };
   }
 
-  async repoTags(): Promise<git.GitTags | undefined> {
-    const glCtx: GitLabHttpClientContext = {
+  apiClientContext(
+    request: RequestInfo,
+    options: shc.TraverseOptions,
+  ): GitLabHttpClientContext {
+    return {
       isManagedGitRepoEndpointContext: true,
       repo: this,
-      request: this.groupRepoApiURL(
+      request: request,
+      requestInit: this.apiRequestInit(),
+      options: options,
+    };
+  }
+
+  url(): git.GitRepoRemoteURL {
+    return `https://${this.manager.server.host}/${this.identity.group}/${this.identity.repo}`;
+  }
+
+  groupRepoApiURL(
+    pathTemplate: string,
+    params?: urlcat.ParamMap,
+  ): string {
+    return urlcat.default(
+      `https://${this.manager.server.host}/api/v4`,
+      pathTemplate,
+      {
+        ...params,
+        // GitLab wants the group/sub-group/repo to be a single URL-encode string
+        encodedGroupRepo: [this.identity.group, this.identity.repo].join("/"),
+      },
+    );
+  }
+
+  async repoTags(): Promise<git.GitTags | undefined> {
+    const apiClientCtx = this.apiClientContext(
+      this.groupRepoApiURL(
         "projects/:encodedGroupRepo/repository/tags",
       ),
-      requestInit: this.apiRequestInit(),
-      options: shc.jsonTraverseOptions<gls.GitLabRepoTags>(
+      shc.jsonTraverseOptions<gls.GitLabRepoTags>(
         { guard: gls.isGitLabRepoTags },
       ),
-    };
-    const glTags = await this.tagsFetch(glCtx);
+    );
+    const glTags = await this.tagsFetch(apiClientCtx);
     if (glTags) {
       const result: git.GitTags = {
         gitRepoTags: [],

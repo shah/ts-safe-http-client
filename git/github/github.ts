@@ -56,6 +56,18 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
     this.tagsFetch = shc.safeFetchJSON;
   }
 
+  apiClientContext(
+    request: RequestInfo,
+    options: shc.TraverseOptions,
+  ): GitHubHttpClientContext {
+    return {
+      isManagedGitRepoEndpointContext: true,
+      repo: this,
+      request,
+      options,
+    };
+  }
+
   url(): git.GitRepoRemoteURL {
     return urlcat.default(`https://github.com`, "/:org/:repo", {
       org: this.identity.org,
@@ -65,24 +77,23 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
 
   orgRepoApiURL(
     pathTemplate: string,
-    params: urlcat.ParamMap = {
+    params?: urlcat.ParamMap,
+  ): string {
+    return urlcat.default("https://api.github.com", pathTemplate, {
+      ...params,
       org: this.identity.org,
       repo: this.identity.repo,
-    },
-  ): string {
-    return urlcat.default("https://api.github.com", pathTemplate, params);
+    });
   }
 
   async repoTags(): Promise<git.GitTags | undefined> {
-    const ghCtx: GitHubHttpClientContext = {
-      isManagedGitRepoEndpointContext: true,
-      repo: this,
-      request: this.orgRepoApiURL("/repos/:org/:repo/tags"),
-      options: shc.jsonTraverseOptions<GitHubRepoTags>(
+    const apiCtx = this.apiClientContext(
+      this.orgRepoApiURL("/repos/:org/:repo/tags"),
+      shc.jsonTraverseOptions<GitHubRepoTags>(
         { guard: isGitHubRepoTags },
       ),
-    };
-    const ghTags = await this.tagsFetch(ghCtx);
+    );
+    const ghTags = await this.tagsFetch(apiCtx);
     if (ghTags) {
       const result: git.GitTags = {
         gitRepoTags: [],
