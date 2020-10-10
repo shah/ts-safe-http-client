@@ -2,6 +2,13 @@ import * as git from "../git.ts";
 import { safeHttpClient as shc, urlcat } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 
+export interface GitLabApiCallPreparer {
+  (
+    pathTemplate: string,
+    params?: urlcat.ParamMap,
+  ): string;
+}
+
 export type GitLabHostname = string;
 export type GitLabGroupID = string;
 export type GitLabRepoID = string;
@@ -97,17 +104,120 @@ export interface GitLabRepoHttpClientContext extends GitLabHttpClientContext {
   readonly repo: GitLabRepo;
 }
 
-// deno-lint-ignore no-empty-interface
-export interface GitLabHttpClientResult
-  extends git.ManagedGitRepoEndpointResult {
+export interface GitLabGroupPopulateOptions {
+  readonly populateGroup: true;
+  readonly populateLabels: boolean;
+}
+
+export interface GitLabStructComponentsPopulatorContext
+  extends git.GitManagerStructComponentsPopulatorContext {
+  readonly manager: GitLab;
+  readonly filterGroups?: (
+    group: gls.GitLabGroup,
+  ) => GitLabGroupPopulateOptions | false;
+}
+
+export const isGitLabStructComponentsPopulatorContext = shc.typeGuardCustom<
+  git.GitManagerStructComponentsPopulatorContext,
+  GitLabStructComponentsPopulatorContext
+>("manager");
+
+export function defaultGitLabStructComponentsPopulatorContext(
+  manager: GitLab,
+): GitLabStructComponentsPopulatorContext {
+  return {
+    isGitManagerStructComponentsPopulatorContext: true,
+    manager: manager,
+    populator: PopulateTopLevelGroups.singleton,
+  };
+}
+
+export class PopulateTopLevelGroups
+  implements git.GitStructComponentsPopulator {
+  static readonly singleton = new PopulateTopLevelGroups();
+
+  async enhance(
+    ctx: git.GitManagerStructComponentsPopulatorContext,
+    instance: git.GitManagerStructComponentsSupplier,
+  ): Promise<git.GitManagerStructComponentsSupplier> {
+    if (isGitLabStructComponentsPopulatorContext(ctx)) {
+      const apiClientCtx = ctx.manager.apiClientContext(
+        ctx.manager.managerApiURL("groups", { top_level_only: true }),
+        shc.jsonTraverseOptions<gls.GitLabGroups>(
+          { guard: gls.isGitLabGroups },
+        ),
+      );
+      const groups = await shc.safeFetchJSON<gls.GitLabGroups>(
+        apiClientCtx,
+      );
+      if (groups) {
+        for (const group of groups) {
+          let gpo: GitLabGroupPopulateOptions | false = false;
+          if (ctx.filterGroups) {
+            gpo = ctx.filterGroups(group);
+            if (!gpo) continue;
+          }
+          const component = new GitLabStructComponent(group);
+          instance.components.push(component);
+        }
+      }
+    }
+    return instance;
+  }
+}
+
+export class GitLabStructComponent
+  implements git.GitManagerHierarchicalComponent {
+  protected populated: boolean;
+  protected subGroups: GitLabStructComponent[] = [];
+
+  constructor(
+    readonly group: gls.GitLabGroup,
+    readonly level: number = 0,
+    readonly parentGroup?: GitLabStructComponent,
+  ) {
+    this.populated = false;
+  }
+
+  get name(): string {
+    return this.group.name;
+  }
+
+  get components(): GitLabStructComponent[] {
+    return this.subGroups;
+  }
+
+  get parent(): GitLabStructComponent | undefined {
+    return this.parentGroup;
+  }
+
+  get isTopLevel(): boolean {
+    return this.level == 0;
+  }
+
+  get hasChildren(): boolean {
+    return this.components.length > 0;
+  }
+}
+
+export class GitLabStructure implements git.GitManagerStructure {
+  protected groupsFetch: shc.SafeFetchJSON<gls.GitLabGroups>;
+  protected populated: boolean;
+  protected groups: GitLabStructComponent[] = [];
+
+  constructor(readonly manager: GitLab) {
+    this.groupsFetch = shc.safeFetchJSON;
+    this.populated = false;
+  }
+
+  get components(): GitLabStructComponent[] {
+    return this.groups;
+  }
 }
 
 export class GitLab
-  implements git.GitRepoManager<GitLabRepoIdentity, GitLabRepo> {
-  readonly groupsFetch: shc.SafeFetchJSON<gls.GitLabGroups>;
-
+  implements git.GitManager<GitLabStructure, GitLabRepoIdentity, GitLabRepo> {
   constructor(readonly server: GitLabServer) {
-    this.groupsFetch = shc.safeFetchJSON;
   }
 
   apiRequestInit(): RequestInit {
@@ -142,6 +252,15 @@ export class GitLab
     );
   }
 
+  async structure(
+    ctx: git.GitManagerStructComponentsPopulatorContext =
+      defaultGitLabStructComponentsPopulatorContext(this),
+  ): Promise<git.GitManagerStructure> {
+    const result = new GitLabStructure(this);
+    await ctx.populator.enhance(ctx, result);
+    return result;
+  }
+
   repo(identity: GitLabRepoIdentity): GitLabRepo {
     return new GitLabRepo(this, identity);
   }
@@ -149,19 +268,7 @@ export class GitLab
   async repos(
     ctx: git.ManagedGitReposContext<GitLabRepo, void>,
   ): Promise<void> {
-    const apiClientCtx = this.apiClientContext(
-      this.managerApiURL("groups"),
-      shc.jsonTraverseOptions<gls.GitLabGroups>(
-        { guard: gls.isGitLabGroups },
-      ),
-    );
-    const groups = await this.groupsFetch(apiClientCtx);
-    if (groups) {
-      for (const group of groups) {
-        //console.dir(group);
-        //await ctx.handle(ctx, group);
-      }
-    }
+    throw new Error("Not implemented yet");
   }
 }
 

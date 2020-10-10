@@ -33,6 +33,40 @@ export interface ManagedGitRepoEndpointResult {
   readonly isManagedGitRepoEndpointResult: true;
 }
 
+export interface GitManagerStructComponentsSupplier {
+  readonly components: GitManagerStructComponent[];
+}
+
+// deno-lint-ignore no-empty-interface
+export interface GitManagerStructure
+  extends GitManagerStructComponentsSupplier {
+}
+
+export interface GitManagerStructComponent {
+  readonly name: string;
+}
+
+export interface GitManagerHierarchicalComponent
+  extends GitManagerStructComponent, GitManagerStructComponentsSupplier {
+  readonly parent?: GitManagerHierarchicalComponent;
+  readonly level: number;
+  readonly isTopLevel: boolean;
+  readonly hasChildren: boolean;
+}
+
+export interface GitManagerStructComponentsPopulatorContext {
+  readonly isGitManagerStructComponentsPopulatorContext: true;
+  readonly populator: GitStructComponentsPopulator;
+}
+
+// deno-lint-ignore no-empty-interface
+export interface GitStructComponentsPopulator extends
+  shc.Enhancer<
+    GitManagerStructComponentsPopulatorContext,
+    GitManagerStructComponentsSupplier
+  > {
+}
+
 // deno-lint-ignore no-empty-interface
 export interface ManagedGitRepoIdentity {
 }
@@ -49,10 +83,14 @@ export interface ManagedGitReposContext<R, T> {
   readonly handle: ManagedGitRepoHandler<ManagedGitReposContext<R, T>, R, T>;
 }
 
-export interface GitRepoManager<
+export interface GitManager<
+  S extends GitManagerStructure,
   I extends ManagedGitRepoIdentity,
   R extends ManagedGitRepo<I>,
 > {
+  readonly structure: (
+    ctx: GitManagerStructComponentsPopulatorContext,
+  ) => Promise<GitManagerStructure>;
   readonly repo: (identity: I) => R;
   readonly repos: (ctx: ManagedGitReposContext<R, void>) => Promise<void>;
 }

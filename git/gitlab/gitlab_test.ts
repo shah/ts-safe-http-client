@@ -50,10 +50,8 @@ Deno.test(`valid GitLab repo tags`, async () => {
 Deno.test(`retrieve Managed Git groups`, async () => {
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer);
-  await gitLab.repos({
-    handle: async (): Promise<void> => {
-    },
-  });
+  const struct = await gitLab.structure();
+  console.dir(struct);
 });
 
 Deno.test(`retrieve Managed Git JSON`, async () => {

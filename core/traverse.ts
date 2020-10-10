@@ -9,15 +9,35 @@ export type RequestInfoEnhancer = enh.EnhancerSync<
   RequestInfo
 >;
 
-export class RemoveUrlTrackingCodes implements RequestInfoEnhancer {
-  static readonly singleton = new RemoveUrlTrackingCodes();
+export type TerminalUrlEnhancer = enh.EnhancerSync<
+  TraverseContext,
+  string
+>;
+
+export class RemoveRequestTrackingCodes implements RequestInfoEnhancer {
+  static readonly singleton = new RemoveRequestTrackingCodes();
   static readonly pattern = /(?<=&|\?)utm_.*?(&|$)/igm;
 
   enhance(_: TraverseContext, request: RequestInfo): RequestInfo {
     if (typeof request === "string") {
-      return request.replace(RemoveUrlTrackingCodes.pattern, "");
+      return request.replace(RemoveRequestTrackingCodes.pattern, "");
     }
     return request;
+  }
+}
+
+export class RemoveTerminalUrlTrackingCodes implements TerminalUrlEnhancer {
+  static readonly singleton = new RemoveTerminalUrlTrackingCodes();
+  static readonly pattern = RemoveRequestTrackingCodes.pattern;
+
+  enhance(_: TraverseContext, url: string): string {
+    if (url && url.length > 0) {
+      let result = url.replace(RemoveTerminalUrlTrackingCodes.pattern, "")
+        .trim();
+      if (result.endsWith("?")) result = result.substr(0, result.length - 1);
+      return result;
+    }
+    return url;
   }
 }
 
@@ -38,6 +58,7 @@ export interface TraverseContext extends Requestable, Labelable {
 export interface TraverseOptions {
   readonly trEnhancer: TraversalResultEnhancer;
   readonly riEnhancer?: RequestInfoEnhancer;
+  readonly turlEnhancer?: TerminalUrlEnhancer;
   readonly htmlContentEnhancer?: html.HtmlContentEnhancer;
 }
 
@@ -288,7 +309,7 @@ export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
   }
 
   extractMetaRefreshUrl(html: string): string | null {
-    let match = html.match(this.metaRefreshPattern);
+    const match = html.match(this.metaRefreshPattern);
     return match && match.length == 5 ? match[3] : null;
   }
 
@@ -329,7 +350,9 @@ export function defaultTraverseOptions(
         DetectMetaRefreshRedirect.singleton,
       ),
     riEnhancer: override?.riEnhancer ||
-      enh.enhancerSync(RemoveUrlTrackingCodes.singleton),
+      enh.enhancerSync(RemoveRequestTrackingCodes.singleton),
+    turlEnhancer: override?.turlEnhancer ||
+      enh.enhancerSync(RemoveTerminalUrlTrackingCodes.singleton),
     htmlContentEnhancer: override?.htmlContentEnhancer ||
       enh.enhancer(
         html.EnrichQueryableHtmlContent.singleton,
@@ -342,18 +365,20 @@ export function defaultTraverseOptions(
 export async function traverse(ctx: TraverseContext): Promise<TraversalResult> {
   const { request, requestInit, options, label } = ctx;
   try {
-    const { trEnhancer, riEnhancer } = options;
+    const { trEnhancer, riEnhancer, turlEnhancer } = options;
     const response = await window.fetch(
       riEnhancer ? riEnhancer.enhance(ctx, request) : request,
       { ...requestInit, redirect: "follow" },
     );
-    let start: SuccessfulTraversal = {
+    const start: SuccessfulTraversal = {
       isTraversalResult: true,
       response,
       request,
       requestInit,
       label,
-      terminalURL: response.url,
+      terminalURL: turlEnhancer
+        ? turlEnhancer.enhance(ctx, response.url)
+        : response.url,
     };
     const result = await trEnhancer.enhance(ctx, start);
     if (!response.bodyUsed) response.body?.cancel();

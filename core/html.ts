@@ -334,7 +334,7 @@ export class BuildCuratableContent implements HtmlContentEnhancer {
     _: HtmlContentContext,
     document: CheerioStatic,
   ): OpenGraph {
-    let result: OpenGraph = {};
+    const result: OpenGraph = {};
     const metaTransformers: {
       [key: string]: (v: string) => void;
     } = {
@@ -375,7 +375,7 @@ export class BuildCuratableContent implements HtmlContentEnhancer {
     _: HtmlContentContext,
     document: CheerioStatic,
   ): TwitterCard {
-    let result: TwitterCard = {};
+    const result: TwitterCard = {};
     const metaTransformers: {
       [key: string]: (v: string) => void;
     } = {

@@ -1,5 +1,6 @@
 import type * as git from "../git.ts";
-import { safeHttpClient as shc, typeGuards, urlcat } from "./deps.ts";
+import { safeHttpClient as shc, urlcat } from "./deps.ts";
+import * as ghs from "./github-schema.ts";
 
 export type GitHubOrgID = string;
 export type GitHubRepoID = string;
@@ -8,6 +9,14 @@ export type GitHubRepoURL = string;
 export interface GitHubRepoIdentity extends git.ManagedGitRepoIdentity {
   readonly org: GitHubOrgID;
   readonly repo: GitHubRepoID;
+}
+
+// deno-lint-ignore no-empty-interface
+export interface GitHubStructure extends git.GitManagerStructure {
+}
+
+// deno-lint-ignore no-empty-interface
+export interface GitHubOrg extends git.GitManagerStructComponent {
 }
 
 // deno-lint-ignore no-empty-interface
@@ -25,7 +34,7 @@ export interface GitHubHttpClientResult
 }
 
 export class GitHub
-  implements git.GitRepoManager<GitHubRepoIdentity, GitHubRepo> {
+  implements git.GitManager<GitHubStructure, GitHubRepoIdentity, GitHubRepo> {
   static readonly singleton = new GitHub();
 
   apiClientContext(
@@ -39,6 +48,12 @@ export class GitHub
     };
   }
 
+  async structure(
+    ctx: git.GitManagerStructComponentsPopulatorContext,
+  ): Promise<git.GitManagerStructure> {
+    throw new Error("Not implemented yet");
+  }
+
   repo(identity: GitHubRepoIdentity): GitHubRepo {
     return new GitHubRepo(this, identity);
   }
@@ -50,23 +65,12 @@ export class GitHub
   }
 }
 
-export interface GitHubRepoTag {
-  readonly name: string;
-}
-
-export type GitHubRepoTags = GitHubRepoTag[];
-
-export const [isGitHubRepoTag, isGitHubRepoTags] = typeGuards<
-  GitHubRepoTag,
-  GitHubRepoTags
->("name");
-
 export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isGitRepo = true;
   readonly isGitHubRepo = true;
   readonly isRemoteGitRepo = true;
   readonly isManagedGitRepo = true;
-  readonly tagsFetch: shc.SafeFetchJSON<GitHubRepoTags>;
+  readonly tagsFetch: shc.SafeFetchJSON<ghs.GitHubRepoTags>;
 
   constructor(readonly manager: GitHub, readonly identity: GitHubRepoIdentity) {
     this.tagsFetch = shc.safeFetchJSON;
@@ -103,8 +107,8 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   async repoTags(): Promise<git.GitTags | undefined> {
     const apiCtx = this.apiClientContext(
       this.orgRepoApiURL("/repos/:org/:repo/tags"),
-      shc.jsonTraverseOptions<GitHubRepoTags>(
-        { guard: isGitHubRepoTags },
+      shc.jsonTraverseOptions<ghs.GitHubRepoTags>(
+        { guard: ghs.isGitHubRepoTags },
       ),
     );
     const ghTags = await this.tagsFetch(apiCtx);
