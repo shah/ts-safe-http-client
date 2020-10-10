@@ -1,7 +1,7 @@
+import { fs, mediaTypes, path, uuid } from "./deps.ts";
 import * as enh from "./enhance.ts";
+import * as safety from "./safety.ts";
 import * as tr from "./traverse.ts";
-import { fs, io, mediaTypes, path, uuid } from "./deps.ts";
-import { StringReader } from "https://deno.land/std@0.70.0/io/readers.ts";
 
 // TODO: implement file download
 // * see alos: https://github.com/denoland/deno/blob/master/std/mime/multipart.ts
@@ -24,11 +24,10 @@ export interface DownloadedContent extends DownloadableContent {
   readonly wroteBytes: number;
 }
 
-export function isDownloadedContent(
-  o: DownloadableContent,
-): o is DownloadedContent {
-  return "isDownloadedContent" in o;
-}
+export const isDownloadedContent = safety.typeGuardCustom<
+  DownloadableContent,
+  DownloadedContent
+>("isDownloadedContent");
 
 export interface SkippedDownloadableContent extends DownloadableContent {
   readonly isSkippedDownloadableContent: true;
@@ -38,11 +37,10 @@ export interface DownloadSupplier {
   readonly download: DownloadableContent;
 }
 
-export function isDownloadTraversalResult(
-  o: tr.TraversalResult,
-): o is tr.SuccessfulTraversal & DownloadSupplier {
-  return "download" in o;
-}
+export const isDownloadTraversalResult = safety.typeGuardCustom<
+  tr.TraversalResult,
+  tr.SuccessfulTraversal & DownloadSupplier
+>("download");
 
 export interface FlexibleDownloadOption<T> {
   (tc: tr.TraversalContent, ctx: tr.TraverseContext): T;
@@ -92,7 +90,7 @@ export class TraversalResultDownloader implements tr.TraversalResultEnhancer {
     });
     this.destination = options?.destination ||
       ((tc: tr.TraversalContent): [string, Deno.File] => {
-        let cdfn = tc.contentDisposition
+        const cdfn = tc.contentDisposition
           ? tc.contentDisposition["filename"]
           : undefined;
         const fileExtn = mediaTypes.extension(tc.contentType);

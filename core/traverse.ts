@@ -1,6 +1,6 @@
 import * as enh from "./enhance.ts";
-import { fs, io, mediaTypes, path, uuid } from "./deps.ts";
 import * as html from "./html.ts";
+import * as safety from "./safety.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
@@ -77,12 +77,12 @@ export interface TransformedTraversalResult extends TraversalResult {
   readonly remarks?: string;
 }
 
-export function isTransformedTraversalResult(
-  o: unknown,
-): o is TransformedTraversalResult {
-  return o && typeof o === "object" &&
-    ("transformedFrom" in o && "position" in o);
-}
+export const isTransformedTraversalResult = safety.typeGuard<
+  TransformedTraversalResult
+>(
+  "transformedFrom",
+  "position",
+);
 
 export function nextTransformationPosition(
   o: TraversalResult,
@@ -99,21 +99,24 @@ export interface SuccessfulTraversal extends TraversalResult {
   readonly terminalURL: string;
 }
 
-export function isSuccessfulTraversal(
-  o: TraversalResult,
-): o is InvalidHttpStatus {
-  return "response" in o && "terminalURL" in o;
-}
+export const isSuccessfulTraversal = safety.typeGuardCustom<
+  TraversalResult,
+  SuccessfulTraversal
+>(
+  "response",
+  "terminalURL",
+);
 
 export interface InvalidHttpStatus extends SuccessfulTraversal {
   readonly invalidHttpStatus: number;
 }
 
-export function isInvalidHttpStatus(
-  o: TraversalResult,
-): o is InvalidHttpStatus {
-  return "invalidHttpStatus" in o;
-}
+export const isInvalidHttpStatus = safety.typeGuardCustom<
+  TraversalResult,
+  InvalidHttpStatus
+>(
+  "invalidHttpStatus",
+);
 
 export interface TraversalContent extends SuccessfulTraversal {
   readonly httpStatus: number;
@@ -122,11 +125,13 @@ export interface TraversalContent extends SuccessfulTraversal {
   readonly writeContent: (writer: Deno.Writer) => Promise<number>;
 }
 
-export function isTraversalContent(
-  o: TraversalResult,
-): o is TraversalContent {
-  return "httpStatus" in o && "contentType" in o;
-}
+export const isTraversalContent = safety.typeGuardCustom<
+  TraversalResult,
+  TraversalContent
+>(
+  "httpStatus",
+  "contentType",
+);
 
 export type TraversalContentEnhancer = enh.Enhancer<
   TraverseContext,
@@ -137,21 +142,23 @@ export interface TraversalStructuredContent extends TraversalContent {
   readonly isStructuredContent: boolean;
 }
 
-export function isTraversalStructuredContent(
-  o: TraversalResult,
-): o is TraversalStructuredContent {
-  return "isStructuredContent" in o;
-}
+export const isTraversalStructuredContent = safety.typeGuardCustom<
+  TraversalResult,
+  TraversalStructuredContent
+>(
+  "isStructuredContent",
+);
 
 export interface TraversalTextContent extends TraversalContent {
   readonly bodyText: string;
 }
 
-export function isTraversalTextContent(
-  o: TraversalResult,
-): o is TraversalTextContent {
-  return "bodyText" in o;
-}
+export const isTraversalTextContent = safety.typeGuardCustom<
+  TraversalResult,
+  TraversalTextContent
+>(
+  "bodyText",
+);
 
 export interface TraversalHtmlContent extends TraversalTextContent {
   readonly htmlContent: html.HtmlContent;
@@ -167,11 +174,12 @@ export interface TraversalContentRedirect extends TransformedTraversalResult {
   readonly contentRedirectUrl: string;
 }
 
-export function isTraversalRedirect(
-  o: TraversalResult,
-): o is TraversalContentRedirect {
-  return "contentRedirectUrl" in o;
-}
+export const isTraversalRedirect = safety.typeGuardCustom<
+  TraversalResult,
+  TraversalContentRedirect
+>(
+  "contentRedirectUrl",
+);
 
 export class RemoveLabelLineBreaksAndTrimSpaces
   implements TraversalResultEnhancer {

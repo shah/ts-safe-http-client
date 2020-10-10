@@ -3,6 +3,7 @@
 // @deno-types="https://cdn.jsdelivr.net/gh/justjavac/deno_cheerio/cheerio.d.ts"
 import cheerio from "https://dev.jspm.io/cheerio/index.js";
 import type * as enh from "./enhance.ts";
+import * as safety from "./safety.ts";
 
 // const $ = cheerio.load('<h2 class="title">Hello world</h2>');
 
@@ -33,9 +34,7 @@ export type HtmlContentEnhancer = enh.Enhancer<
   HtmlContent
 >;
 
-export function isHtmlContent(o: unknown): o is HtmlContent {
-  return o && typeof o === "object" && "isHtmlContent" in o;
-}
+export const isHtmlContent = safety.typeGuard<HtmlContent>("isHtmlContent");
 
 export interface HtmlAnchor {
   readonly href: string;
@@ -90,9 +89,10 @@ export interface CuratableContent extends HtmlContent {
   readonly socialGraph: SocialGraph;
 }
 
-export function isCuratableContent(o: unknown): o is CuratableContent {
-  return o && typeof o === "object" && "title" in o && "socialGraph" in o;
-}
+export const isCuratableContent = safety.typeGuard<CuratableContent>(
+  "socialGraph",
+  "title",
+);
 
 export interface QueryableHtmlContent extends HtmlContent {
   readonly htmlSource: string;
@@ -108,9 +108,10 @@ export interface QueryableHtmlContent extends HtmlContent {
   readonly meta: () => HtmlMeta;
 }
 
-export function isQueryableHtmlContent(o: unknown): o is QueryableHtmlContent {
-  return o && typeof o === "object" && "htmlSource" in o && "document" in o;
-}
+export const isQueryableHtmlContent = safety.typeGuard<QueryableHtmlContent>(
+  "htmlSource",
+  "document",
+);
 
 export interface OpenGraph {
   type?: string;
@@ -139,9 +140,9 @@ export interface TransformedHtmlContent extends HtmlContent {
   readonly remarks?: string;
 }
 
-export function isTransformedContent(o: unknown): o is TransformedHtmlContent {
-  return o && typeof o === "object" && "transformedFromContent" in o;
-}
+export const isTransformedContent = safety.typeGuard<TransformedHtmlContent>(
+  "transformedFromContent",
+);
 
 export function nextTransformerPosition(o: unknown): number {
   return isTransformedContent(o) ? o.position + 1 : 0;

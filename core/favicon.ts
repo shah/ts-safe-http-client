@@ -1,15 +1,15 @@
 import * as enh from "./enhance.ts";
+import * as safety from "./safety.ts";
 import * as tr from "./traverse.ts";
 
 export interface FavIconSupplier {
   readonly favIconResult: tr.TraversalResult;
 }
 
-export function isTraveralResultFavIcon(
-  o: tr.TraversalResult,
-): o is tr.SuccessfulTraversal & FavIconSupplier {
-  return "favIconResult" in o;
-}
+export const isTraveralResultFavIcon = safety.typeGuardCustom<
+  tr.TraversalResult,
+  tr.SuccessfulTraversal & FavIconSupplier
+>("favIconResult");
 
 export class TraversalResultFavIconEnhancer
   implements tr.TraversalResultEnhancer {
