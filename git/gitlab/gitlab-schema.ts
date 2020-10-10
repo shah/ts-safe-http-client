@@ -1,3 +1,5 @@
+import { typeGuards } from "./deps.ts";
+
 export enum GitLabMembershipScope {
   GROUPS = "groups",
   PROJECTS = "projects",
@@ -69,15 +71,22 @@ export interface GitLabRepoTag {
 }
 
 export type GitLabRepoTags = GitLabRepoTag[];
+export const [isGitLabRepoTag, isGitLabRepoTags] = typeGuards<
+  GitLabRepoTag,
+  GitLabRepoTags
+>("name");
 
-export function isGitLabTag(o: unknown): o is GitLabRepoTag {
-  return o && typeof o === "object" && "name" in o;
-}
+// export const gitLabTagIdentifyingProps = ["name"];
+// export function isGitLabTag(o: unknown): o is GitLabRepoTag {
+//   return o && typeof o === "object" &&
+//     gitLabTagIdentifyingProps.filter((p) => p in o).length ==
+//       gitLabTagIdentifyingProps.length;
+// }
 
-export function isGitLabRepoTags(o: unknown): o is GitLabRepoTags {
-  return o && Array.isArray(o) &&
-    o.filter((tag) => !isGitLabTag(tag)).length == 0;
-}
+// export function isGitLabRepoTags(o: unknown): o is GitLabRepoTags {
+//   return o && Array.isArray(o) &&
+//     o.filter((tag) => !isGitLabTag(tag)).length == 0;
+// }
 
 export interface GitLabNamespace {
   full_path: string;
@@ -273,6 +282,12 @@ export interface GitLabGroup {
   visibility: string;
   web_url: string;
 }
+
+export type GitLabGroups = GitLabGroup[];
+export const [isGitLabGroup, isGitLabGroups] = typeGuards<
+  GitLabGroup,
+  GitLabGroups
+>("name", "path");
 
 export interface GitLabDiscussion {
   id: string;

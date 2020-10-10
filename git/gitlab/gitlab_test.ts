@@ -47,6 +47,15 @@ Deno.test(`valid GitLab repo tags`, async () => {
   ta.assert(latestTag, "A latest tag should be available");
 });
 
+Deno.test(`retrieve Managed Git groups`, async () => {
+  ta.assert(glServer, "GitLab Server not available");
+  const gitLab = new mod.GitLab(glServer);
+  await gitLab.repos({
+    handle: async (): Promise<void> => {
+    },
+  });
+});
+
 Deno.test(`retrieve Managed Git JSON`, async () => {
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer);

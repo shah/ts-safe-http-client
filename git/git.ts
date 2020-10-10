@@ -37,11 +37,24 @@ export interface ManagedGitRepoEndpointResult {
 export interface ManagedGitRepoIdentity {
 }
 
+export interface ManagedGitRepoHandler<C, R, T> {
+  (ctx: C, repo: R): Promise<T>;
+}
+
+export interface ManagedGitRepoHandlerSync<C, R, T> {
+  (ctx: C, repo: R): T;
+}
+
+export interface ManagedGitReposContext<R, T> {
+  readonly handle: ManagedGitRepoHandler<ManagedGitReposContext<R, T>, R, T>;
+}
+
 export interface GitRepoManager<
   I extends ManagedGitRepoIdentity,
   R extends ManagedGitRepo<I>,
 > {
-  readonly repo: (mgri: I) => R;
+  readonly repo: (identity: I) => R;
+  readonly repos: (ctx: ManagedGitReposContext<R, void>) => Promise<void>;
 }
 
 export interface ManagedGitRepo<I extends ManagedGitRepoIdentity>

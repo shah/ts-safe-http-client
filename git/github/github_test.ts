@@ -24,7 +24,7 @@ Deno.test(`valid GitHub repo tags`, async () => {
 });
 
 Deno.test(`invalid GitHub repo tags`, async () => {
-  const repo = new gh.GitHubRepo({ org: "shah", repo: "unknown" });
+  const repo = gh.GitHub.singleton.repo({ org: "shah", repo: "unknown" });
   ta.assert(repo);
 
   const tags = await repo.repoTags();

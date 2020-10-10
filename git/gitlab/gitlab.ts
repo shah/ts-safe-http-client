@@ -91,6 +91,9 @@ export interface GitLabRepoIdentity extends git.ManagedGitRepoIdentity {
 export interface GitLabHttpClientContext
   extends git.ManagedGitRepoEndpointContext {
   requestInit: RequestInit;
+}
+
+export interface GitLabRepoHttpClientContext extends GitLabHttpClientContext {
   readonly repo: GitLabRepo;
 }
 
@@ -101,10 +104,64 @@ export interface GitLabHttpClientResult
 
 export class GitLab
   implements git.GitRepoManager<GitLabRepoIdentity, GitLabRepo> {
+  readonly groupsFetch: shc.SafeFetchJSON<gls.GitLabGroups>;
+
   constructor(readonly server: GitLabServer) {
+    this.groupsFetch = shc.safeFetchJSON;
   }
+
+  apiRequestInit(): RequestInit {
+    const authn = this.server.authn.glServerUserNamePassword();
+    return {
+      headers: {
+        "PRIVATE-TOKEN": authn[1],
+      },
+    };
+  }
+
+  apiClientContext(
+    request: RequestInfo,
+    options: shc.TraverseOptions,
+  ): GitLabHttpClientContext {
+    return {
+      isManagedGitRepoEndpointContext: true,
+      request: request,
+      requestInit: this.apiRequestInit(),
+      options: options,
+    };
+  }
+
+  managerApiURL(
+    pathTemplate: string,
+    params?: urlcat.ParamMap,
+  ): string {
+    return urlcat.default(
+      `https://${this.server.host}/api/v4`,
+      pathTemplate,
+      { ...params },
+    );
+  }
+
   repo(identity: GitLabRepoIdentity): GitLabRepo {
     return new GitLabRepo(this, identity);
+  }
+
+  async repos(
+    ctx: git.ManagedGitReposContext<GitLabRepo, void>,
+  ): Promise<void> {
+    const apiClientCtx = this.apiClientContext(
+      this.managerApiURL("groups"),
+      shc.jsonTraverseOptions<gls.GitLabGroups>(
+        { guard: gls.isGitLabGroups },
+      ),
+    );
+    const groups = await this.groupsFetch(apiClientCtx);
+    if (groups) {
+      for (const group of groups) {
+        console.dir(group);
+        //await ctx.handle(ctx, group);
+      }
+    }
   }
 }
 
@@ -119,25 +176,13 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
     this.tagsFetch = shc.safeFetchJSON;
   }
 
-  apiRequestInit(): RequestInit {
-    const authn = this.manager.server.authn.glServerUserNamePassword();
-    return {
-      headers: {
-        "PRIVATE-TOKEN": authn[1],
-      },
-    };
-  }
-
   apiClientContext(
     request: RequestInfo,
     options: shc.TraverseOptions,
-  ): GitLabHttpClientContext {
+  ): GitLabRepoHttpClientContext {
     return {
-      isManagedGitRepoEndpointContext: true,
+      ...this.manager.apiClientContext(request, options),
       repo: this,
-      request: request,
-      requestInit: this.apiRequestInit(),
-      options: options,
     };
   }
 

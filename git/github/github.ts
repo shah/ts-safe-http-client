@@ -1,5 +1,5 @@
 import type * as git from "../git.ts";
-import { safeHttpClient as shc, urlcat } from "./deps.ts";
+import { safeHttpClient as shc, typeGuards, urlcat } from "./deps.ts";
 
 export type GitHubOrgID = string;
 export type GitHubRepoID = string;
@@ -10,8 +10,12 @@ export interface GitHubRepoIdentity extends git.ManagedGitRepoIdentity {
   readonly repo: GitHubRepoID;
 }
 
+// deno-lint-ignore no-empty-interface
 export interface GitHubHttpClientContext
   extends git.ManagedGitRepoEndpointContext {
+}
+
+export interface GitHubRepoHttpClientContext extends GitHubHttpClientContext {
   readonly repo: GitHubRepo;
 }
 
@@ -24,8 +28,25 @@ export class GitHub
   implements git.GitRepoManager<GitHubRepoIdentity, GitHubRepo> {
   static readonly singleton = new GitHub();
 
+  apiClientContext(
+    request: RequestInfo,
+    options: shc.TraverseOptions,
+  ): GitHubHttpClientContext {
+    return {
+      isManagedGitRepoEndpointContext: true,
+      request,
+      options,
+    };
+  }
+
   repo(identity: GitHubRepoIdentity): GitHubRepo {
-    return new GitHubRepo(identity);
+    return new GitHubRepo(this, identity);
+  }
+
+  async repos(
+    ctx: git.ManagedGitReposContext<GitHubRepo, void>,
+  ): Promise<void> {
+    throw new Error("TODO: Not implemented yet.");
   }
 }
 
@@ -35,15 +56,10 @@ export interface GitHubRepoTag {
 
 export type GitHubRepoTags = GitHubRepoTag[];
 
-/**
- * Make sure that the object passed is in is an array and that each
- * element of the array is an object with a "name" property
- * @param o object passed in from HTTP client fetch
- */
-export function isGitHubRepoTags(o: unknown): o is GitHubRepoTags {
-  return o && Array.isArray(o) &&
-    o.filter((tag) => typeof tag !== "object" || !("name" in tag)).length == 0;
-}
+export const [isGitHubRepoTag, isGitHubRepoTags] = typeGuards<
+  GitHubRepoTag,
+  GitHubRepoTags
+>("name");
 
 export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isGitRepo = true;
@@ -52,19 +68,17 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isManagedGitRepo = true;
   readonly tagsFetch: shc.SafeFetchJSON<GitHubRepoTags>;
 
-  constructor(readonly identity: GitHubRepoIdentity) {
+  constructor(readonly manager: GitHub, readonly identity: GitHubRepoIdentity) {
     this.tagsFetch = shc.safeFetchJSON;
   }
 
   apiClientContext(
     request: RequestInfo,
     options: shc.TraverseOptions,
-  ): GitHubHttpClientContext {
+  ): GitHubRepoHttpClientContext {
     return {
-      isManagedGitRepoEndpointContext: true,
+      ...this.manager.apiClientContext(request, options),
       repo: this,
-      request,
-      options,
     };
   }
 
@@ -114,6 +128,6 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   async content(
     ctx: git.ManagedGitContentContext,
   ): Promise<git.ManagedGitContent | undefined> {
-    return undefined;
+    throw new Error("TODO: Not implemented yet.");
   }
 }
