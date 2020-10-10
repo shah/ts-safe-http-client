@@ -158,7 +158,7 @@ export class GitLab
     const groups = await this.groupsFetch(apiClientCtx);
     if (groups) {
       for (const group of groups) {
-        console.dir(group);
+        //console.dir(group);
         //await ctx.handle(ctx, group);
       }
     }

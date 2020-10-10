@@ -6,6 +6,7 @@ export function typeGuard<T, K extends keyof T = keyof T>(
   ...requireKeysInSingleT: K[] // = [...keyof T] TODO: default this to all required keys
 ): TypeGuard<T> {
   return (o: unknown): o is T => {
+    // Make sure that the object passed is a real object and has all required props
     return o && typeof o === "object" &&
       !requireKeysInSingleT.find((p) => !(p in o));
   };
@@ -19,10 +20,7 @@ export function typeGuards<
   ...requireKeysInSingleT: K[] // TODO: default this to all required keys, not sure how?
 ): [TypeGuard<SingleT>, TypeGuard<MultipleT>] {
   return [
-    (o: unknown): o is SingleT => {
-      return o && typeof o === "object" &&
-        !requireKeysInSingleT.find((p) => !(p in o));
-    },
+    typeGuard(...requireKeysInSingleT),
     (o: unknown): o is MultipleT => {
       // Make sure that the object passed is in is an array and that each
       // element of the array is an object with required props
