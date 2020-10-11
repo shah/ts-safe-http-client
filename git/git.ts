@@ -7,7 +7,7 @@ import { safeHttpClient as shc } from "./deps.ts";
 // * https://github.com/superRaytin/gitlab-db
 // * JSONiq - The JSON Query Language https://www.jsoniq.org/
 
-// Terminology -- "managed" means that it's in GitHub, GitLab, BitBucket or another "git manager".
+// Terminology -- "managed" means that it's in GitHub, GitLab, Gitea, BitBucket or another "git manager".
 // If something isn't marked with "managed" it means it's raw Git, with or without a manager
 
 export type GitRepoRemoteURL = string;
