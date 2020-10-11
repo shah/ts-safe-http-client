@@ -1,4 +1,4 @@
-import { safeHttpClient as shc } from "./deps.ts";
+import { safety } from "./deps.ts";
 
 export enum GitLabMembershipScope {
   GROUPS = "groups",
@@ -71,7 +71,7 @@ export interface GitLabRepoTag {
 }
 
 export type GitLabRepoTags = GitLabRepoTag[];
-export const [isGitLabRepoTag, isGitLabRepoTags] = shc.typeGuards<
+export const [isGitLabRepoTag, isGitLabRepoTags] = safety.typeGuards<
   GitLabRepoTag,
   GitLabRepoTags
 >("name");
@@ -284,7 +284,7 @@ export interface GitLabGroup {
 }
 
 export type GitLabGroups = GitLabGroup[];
-export const [isGitLabGroup, isGitLabGroups] = shc.typeGuards<
+export const [isGitLabGroup, isGitLabGroups] = safety.typeGuards<
   GitLabGroup,
   GitLabGroups
 >("name", "path");

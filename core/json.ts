@@ -1,4 +1,4 @@
-import * as enh from "./enhance.ts";
+import { safety } from "./deps.ts";
 import * as tr from "./traverse.ts";
 
 // TODO: Add strongly-typed validation libraries in guards
@@ -71,7 +71,7 @@ export function jsonTraverseOptions<T>(
 ): tr.TraverseOptions {
   const result: tr.TraverseOptions = {
     ...override,
-    trEnhancer: override?.trEnhancer || enh.enhancer(
+    trEnhancer: override?.trEnhancer || safety.enhancer(
       new DetectJsonContent<T>(override?.guard, override?.onGuardFailure),
     ),
   };

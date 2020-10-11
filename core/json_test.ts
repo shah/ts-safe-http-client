@@ -1,4 +1,5 @@
 import { testingAsserts as ta } from "../deps-test.ts";
+import { safety } from "./deps.ts";
 import * as mod from "./mod.ts";
 
 export interface GitHubRepoTag {
@@ -7,7 +8,7 @@ export interface GitHubRepoTag {
 
 export type GitHubRepoTags = GitHubRepoTag[];
 
-const isGitHubRepoTags = mod.typeGuardArrayOf<
+const isGitHubRepoTags = safety.typeGuardArrayOf<
   GitHubRepoTag,
   GitHubRepoTags
 >("name");

@@ -1,15 +1,14 @@
-import * as enh from "./enhance.ts";
+import { safety } from "./deps.ts";
 import * as html from "./html.ts";
-import * as safety from "./safety.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
-export type RequestInfoEnhancer = enh.EnhancerSync<
+export type RequestInfoEnhancer = safety.EnhancerSync<
   TraverseContext,
   RequestInfo
 >;
 
-export type TerminalUrlEnhancer = enh.EnhancerSync<
+export type TerminalUrlEnhancer = safety.EnhancerSync<
   TraverseContext,
   string
 >;
@@ -66,7 +65,7 @@ export interface TraversalResult extends Requestable, Labelable {
   readonly isTraversalResult: true;
 }
 
-export type TraversalResultEnhancer = enh.Enhancer<
+export type TraversalResultEnhancer = safety.Enhancer<
   TraverseContext,
   TraversalResult
 >;
@@ -133,7 +132,7 @@ export const isTraversalContent = safety.typeGuardCustom<
   "contentType",
 );
 
-export type TraversalContentEnhancer = enh.Enhancer<
+export type TraversalContentEnhancer = safety.Enhancer<
   TraverseContext,
   TraversalContent
 >;
@@ -353,16 +352,16 @@ export function defaultTraverseOptions(
 ): TraverseOptions {
   return {
     trEnhancer: override?.trEnhancer ||
-      enh.enhancer(
+      safety.enhancer(
         RemoveLabelLineBreaksAndTrimSpaces.singleton,
         DetectMetaRefreshRedirect.singleton,
       ),
     riEnhancer: override?.riEnhancer ||
-      enh.enhancerSync(RemoveRequestTrackingCodes.singleton),
+      safety.enhancerSync(RemoveRequestTrackingCodes.singleton),
     turlEnhancer: override?.turlEnhancer ||
-      enh.enhancerSync(RemoveTerminalUrlTrackingCodes.singleton),
+      safety.enhancerSync(RemoveTerminalUrlTrackingCodes.singleton),
     htmlContentEnhancer: override?.htmlContentEnhancer ||
-      enh.enhancer(
+      safety.enhancer(
         html.EnrichQueryableHtmlContent.singleton,
         html.BuildCuratableContent.singleton,
         html.StandardizeCurationTitle.singleton,

@@ -1,5 +1,5 @@
 import * as git from "../git.ts";
-import { safeHttpClient as shc, urlcat } from "./deps.ts";
+import { safeHttpClient as shc, safety, urlcat } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 
 export interface GitLabApiCallPreparer {
@@ -117,7 +117,7 @@ export interface GitLabStructComponentsPopulatorContext
   ) => GitLabGroupPopulateOptions | false;
 }
 
-export const isGitLabStructComponentsPopulatorContext = shc.typeGuardCustom<
+export const isGitLabStructComponentsPopulatorContext = safety.typeGuardCustom<
   git.GitManagerStructComponentsPopulatorContext,
   GitLabStructComponentsPopulatorContext
 >("manager");

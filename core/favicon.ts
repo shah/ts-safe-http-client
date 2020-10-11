@@ -1,5 +1,4 @@
-import * as enh from "./enhance.ts";
-import * as safety from "./safety.ts";
+import { safety } from "./deps.ts";
 import * as tr from "./traverse.ts";
 
 export interface FavIconSupplier {
@@ -14,10 +13,10 @@ export const isTraveralResultFavIcon = safety.typeGuardCustom<
 export class TraversalResultFavIconEnhancer
   implements tr.TraversalResultEnhancer {
   static readonly followOnly = new TraversalResultFavIconEnhancer(
-    enh.enhancer(tr.ValidateStatus.singleton),
+    safety.enhancer(tr.ValidateStatus.singleton),
   );
   static readonly followAndDownload = new TraversalResultFavIconEnhancer(
-    enh.enhancer(
+    safety.enhancer(
       tr.ValidateStatus.singleton,
       // TODO: DownloadContent.singleton,
     ),

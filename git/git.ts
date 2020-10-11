@@ -1,4 +1,4 @@
-import { safeHttpClient as shc } from "./deps.ts";
+import { safeHttpClient as shc, safety } from "./deps.ts";
 
 // TODO: Add GitStore and JsonIQ capabilities
 // * gitrows/gitrows: A lightweight module for using git as a database https://github.com/gitrows/gitrows
@@ -61,7 +61,7 @@ export interface GitManagerStructComponentsPopulatorContext {
 
 // deno-lint-ignore no-empty-interface
 export interface GitStructComponentsPopulator extends
-  shc.Enhancer<
+  safety.Enhancer<
     GitManagerStructComponentsPopulatorContext,
     GitManagerStructComponentsSupplier
   > {
@@ -116,7 +116,7 @@ export interface ManagedGitContentContext {
 
 // deno-lint-ignore no-empty-interface
 export interface ManagedGitContentEnhancer
-  extends shc.Enhancer<ManagedGitContentContext, ManagedGitContent> {
+  extends safety.Enhancer<ManagedGitContentContext, ManagedGitContent> {
 }
 
 export function prepareManagedGitContent<T>(

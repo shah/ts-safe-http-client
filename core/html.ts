@@ -2,8 +2,7 @@
 // from: https://github.com/justjavac/deno_cheerio
 // @deno-types="https://cdn.jsdelivr.net/gh/justjavac/deno_cheerio/cheerio.d.ts"
 import cheerio from "https://dev.jspm.io/cheerio/index.js";
-import type * as enh from "./enhance.ts";
-import * as safety from "./safety.ts";
+import { safety } from "./deps.ts";
 
 // const $ = cheerio.load('<h2 class="title">Hello world</h2>');
 
@@ -29,7 +28,7 @@ export interface HtmlContent {
   readonly isHtmlContent: true;
 }
 
-export type HtmlContentEnhancer = enh.Enhancer<
+export type HtmlContentEnhancer = safety.Enhancer<
   HtmlContentContext,
   HtmlContent
 >;

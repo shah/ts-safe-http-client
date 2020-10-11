@@ -1,4 +1,4 @@
-import { safeHttpClient as shc } from "./deps.ts";
+import { safeHttpClient as shc, safety } from "./deps.ts";
 
 export interface GitHubRepoTag {
   readonly name: string;
@@ -6,7 +6,7 @@ export interface GitHubRepoTag {
 
 export type GitHubRepoTags = GitHubRepoTag[];
 
-export const [isGitHubRepoTag, isGitHubRepoTags] = shc.typeGuards<
+export const [isGitHubRepoTag, isGitHubRepoTags] = safety.typeGuards<
   GitHubRepoTag,
   GitHubRepoTags
 >("name");

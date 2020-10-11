@@ -1,4 +1,5 @@
 import { testingAsserts as ta } from "../deps-test.ts";
+import { safety } from "./deps.ts";
 import * as mod from "./mod.ts";
 
 Deno.test(`valid HTTP request with HTML Content and favIcon supplier`, async () => {
@@ -9,7 +10,7 @@ Deno.test(`valid HTTP request with HTML Content and favIcon supplier`, async () 
       request: endpoint,
       options: {
         ...options,
-        trEnhancer: mod.enhancer(
+        trEnhancer: safety.enhancer(
           options.trEnhancer,
           mod.TraversalResultFavIconEnhancer.followOnly,
         ),

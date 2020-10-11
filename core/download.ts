@@ -1,6 +1,4 @@
-import { fs, mediaTypes, path, uuid } from "./deps.ts";
-import * as enh from "./enhance.ts";
-import * as safety from "./safety.ts";
+import { fs, mediaTypes, path, safety, uuid } from "./deps.ts";
 import * as tr from "./traverse.ts";
 
 // TODO: implement file download
@@ -11,7 +9,7 @@ export interface DownloadableContent {
   readonly isDownloadableContent: true;
 }
 
-export type DownloadableContentEnhancer = enh.Enhancer<
+export type DownloadableContentEnhancer = safety.Enhancer<
   tr.TraverseContext,
   DownloadableContent
 >;
@@ -106,7 +104,7 @@ export class TraversalResultDownloader implements tr.TraversalResultEnhancer {
           ),
         ];
       });
-    this.downloadEnhancer = options?.downloadEnhancer || enh.enhancer();
+    this.downloadEnhancer = options?.downloadEnhancer || safety.enhancer();
   }
 
   async enhance(
