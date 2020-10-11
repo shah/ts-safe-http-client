@@ -178,28 +178,64 @@ export interface ManagedGitContent {
   readonly path: string;
 }
 
+export const isManagedGitContent = safety.typeGuard<ManagedGitContent>(
+  "isManagedGitContent",
+);
+
+export function managedGitContentTypeGuard<
+  T extends ManagedGitContent,
+  K extends keyof T = keyof T,
+>(
+  ...requireKeysInT: K[] // = [...keyof T] TODO: default this to all required keys
+): safety.TypeGuard<T> {
+  const isSubtype = safety.typeGuardCustom<ManagedGitContent, T>(
+    ...requireKeysInT,
+  );
+  return (o: unknown): o is T => {
+    // Make sure that the object passed is a real object and has all required props
+    return isManagedGitContent(o) && isSubtype(o);
+  };
+}
+
 export interface ManagedGitFile<T> extends ManagedGitContent {
   readonly isManagedGitFile: true;
   readonly traverse: () => Promise<shc.TraversalResult>;
   readonly content: () => Promise<T>;
-  //readonly commit: (content: T) => void;
+}
+
+export function managedGitFileTypeGuard<
+  F,
+  T extends ManagedGitFile<F>,
+  K extends keyof T = keyof T,
+>(
+  ...requireKeysInT: K[] // = [...keyof T] TODO: default this to all required keys
+): safety.TypeGuardCustom<ManagedGitContent, T> {
+  const isSubtype = safety.typeGuardCustom<ManagedGitContent, T>(
+    ...requireKeysInT,
+  );
+  return (o: ManagedGitContent): o is T => {
+    // Make sure that the object passed is a real object and has all required props
+    return isManagedGitContent(o) && isSubtype(o);
+  };
 }
 
 export function isManagedGitFile<T>(
   o: ManagedGitContent,
 ): o is ManagedGitFile<T> {
-  return o && typeof o === "object" && "isManagedGitFile" in o;
+  return managedGitContentTypeGuard<ManagedGitFile<T>>(
+    "isManagedGitFile",
+  )(o);
 }
 
 export interface ManagedGitTextFile extends ManagedGitFile<string> {
   readonly isManagedGitTextFile: true;
 }
 
-export function isManagedGitTextFile(
-  o: ManagedGitContent,
-): o is ManagedGitTextFile {
-  return o && typeof o === "object" && "isManagedGitTextFile" in o;
-}
+export const isManagedGitTextFile = managedGitContentTypeGuard<
+  ManagedGitTextFile
+>(
+  "isManagedGitTextFile",
+);
 
 export interface ManagedGitJsonFile<T> extends ManagedGitFile<T> {
   readonly isManagedGitJsonFile: true;
@@ -208,7 +244,9 @@ export interface ManagedGitJsonFile<T> extends ManagedGitFile<T> {
 export function isManagedGitJsonFile<T>(
   o: ManagedGitContent,
 ): o is ManagedGitJsonFile<T> {
-  return o && typeof o === "object" && "isManagedGitJsonFile" in o;
+  return managedGitContentTypeGuard<ManagedGitJsonFile<T>>(
+    "isManagedGitJsonFile",
+  )(o);
 }
 
 export type GitTagIdentity = string;
