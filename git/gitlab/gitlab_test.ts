@@ -1,5 +1,5 @@
 import { testingAsserts as ta } from "../deps-test.ts";
-import * as git from "../mod.ts";
+import { managedGit as mGit } from "./deps.ts";
 import * as mod from "./mod.ts";
 
 const glServerAuthn = mod.envVarAuthnAccessToken("TSHC_GLPAT_", {
@@ -68,5 +68,5 @@ Deno.test(`retrieve Managed Git JSON`, async () => {
     path: "test-artifacts/ts-lhncbc-lforms/test1-with-error.lhc-form.json",
   });
   ta.assert(result);
-  ta.assert(git.isManagedGitJsonFile(result));
+  ta.assert(mGit.isManagedGitJsonFile(result));
 });

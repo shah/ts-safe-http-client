@@ -1,27 +1,31 @@
-import type * as git from "../git.ts";
-import { safeHttpClient as shc, urlcat } from "./deps.ts";
+import {
+  git,
+  managedGit as mGit,
+  safeHttpClient as shc,
+  urlcat,
+} from "./deps.ts";
 import * as ghs from "./github-schema.ts";
 
 export type GitHubOrgID = string;
 export type GitHubRepoID = string;
 export type GitHubRepoURL = string;
 
-export interface GitHubRepoIdentity extends git.ManagedGitRepoIdentity {
+export interface GitHubRepoIdentity extends mGit.ManagedGitRepoIdentity {
   readonly org: GitHubOrgID;
   readonly repo: GitHubRepoID;
 }
 
 // deno-lint-ignore no-empty-interface
-export interface GitHubStructure extends git.GitManagerStructure {
+export interface GitHubStructure extends mGit.GitManagerStructure {
 }
 
 // deno-lint-ignore no-empty-interface
-export interface GitHubOrg extends git.GitManagerStructComponent {
+export interface GitHubOrg extends mGit.GitManagerStructComponent {
 }
 
 // deno-lint-ignore no-empty-interface
 export interface GitHubHttpClientContext
-  extends git.ManagedGitRepoEndpointContext {
+  extends mGit.ManagedGitRepoEndpointContext {
 }
 
 export interface GitHubRepoHttpClientContext extends GitHubHttpClientContext {
@@ -30,11 +34,11 @@ export interface GitHubRepoHttpClientContext extends GitHubHttpClientContext {
 
 // deno-lint-ignore no-empty-interface
 export interface GitHubHttpClientResult
-  extends git.ManagedGitRepoEndpointResult {
+  extends mGit.ManagedGitRepoEndpointResult {
 }
 
 export class GitHub
-  implements git.GitManager<GitHubStructure, GitHubRepoIdentity, GitHubRepo> {
+  implements mGit.GitManager<GitHubStructure, GitHubRepoIdentity, GitHubRepo> {
   static readonly singleton = new GitHub();
 
   apiClientContext(
@@ -49,8 +53,8 @@ export class GitHub
   }
 
   async structure(
-    ctx: git.GitManagerStructComponentsPopulatorContext,
-  ): Promise<git.GitManagerStructure> {
+    ctx: mGit.GitManagerStructComponentsPopulatorContext,
+  ): Promise<mGit.GitManagerStructure> {
     throw new Error("Not implemented yet");
   }
 
@@ -59,13 +63,13 @@ export class GitHub
   }
 
   async repos(
-    ctx: git.ManagedGitReposContext<GitHubRepo, void>,
+    ctx: mGit.ManagedGitReposContext<GitHubRepo, void>,
   ): Promise<void> {
     throw new Error("TODO: Not implemented yet.");
   }
 }
 
-export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
+export class GitHubRepo implements mGit.ManagedGitRepo<GitHubRepoIdentity> {
   readonly isGitRepo = true;
   readonly isGitHubRepo = true;
   readonly isRemoteGitRepo = true;
@@ -130,8 +134,8 @@ export class GitHubRepo implements git.ManagedGitRepo<GitHubRepoIdentity> {
   }
 
   async content(
-    ctx: git.ManagedGitContentContext,
-  ): Promise<git.ManagedGitContent | undefined> {
+    ctx: mGit.ManagedGitContentContext,
+  ): Promise<mGit.ManagedGitContent | undefined> {
     throw new Error("TODO: Not implemented yet.");
   }
 }

@@ -1,4 +1,4 @@
-import { safeHttpClient as shc, safety } from "./deps.ts";
+import { safety } from "./deps.ts";
 
 export interface GitHubRepoTag {
   readonly name: string;

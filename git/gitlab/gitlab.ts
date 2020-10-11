@@ -1,5 +1,10 @@
-import * as git from "../git.ts";
-import { safeHttpClient as shc, safety, urlcat } from "./deps.ts";
+import {
+  git,
+  managedGit as mGit,
+  safeHttpClient as shc,
+  safety,
+  urlcat,
+} from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 
 export interface GitLabApiCallPreparer {
@@ -90,13 +95,13 @@ export function envVarGitLabServer(
   return onInvalid?.server;
 }
 
-export interface GitLabRepoIdentity extends git.ManagedGitRepoIdentity {
+export interface GitLabRepoIdentity extends mGit.ManagedGitRepoIdentity {
   readonly group: GitLabGroupID;
   readonly repo: GitLabRepoID;
 }
 
 export interface GitLabHttpClientContext
-  extends git.ManagedGitRepoEndpointContext {
+  extends mGit.ManagedGitRepoEndpointContext {
   requestInit: RequestInit;
 }
 
@@ -110,7 +115,7 @@ export interface GitLabGroupPopulateOptions {
 }
 
 export interface GitLabStructComponentsPopulatorContext
-  extends git.GitManagerStructComponentsPopulatorContext {
+  extends mGit.GitManagerStructComponentsPopulatorContext {
   readonly manager: GitLab;
   readonly filterGroups?: (
     group: gls.GitLabGroup,
@@ -118,7 +123,7 @@ export interface GitLabStructComponentsPopulatorContext
 }
 
 export const isGitLabStructComponentsPopulatorContext = safety.typeGuardCustom<
-  git.GitManagerStructComponentsPopulatorContext,
+  mGit.GitManagerStructComponentsPopulatorContext,
   GitLabStructComponentsPopulatorContext
 >("manager");
 
@@ -133,13 +138,13 @@ export function defaultGitLabStructComponentsPopulatorContext(
 }
 
 export class PopulateTopLevelGroups
-  implements git.GitStructComponentsPopulator {
+  implements mGit.GitStructComponentsPopulator {
   static readonly singleton = new PopulateTopLevelGroups();
 
   async enhance(
-    ctx: git.GitManagerStructComponentsPopulatorContext,
-    instance: git.GitManagerStructComponentsSupplier,
-  ): Promise<git.GitManagerStructComponentsSupplier> {
+    ctx: mGit.GitManagerStructComponentsPopulatorContext,
+    instance: mGit.GitManagerStructComponentsSupplier,
+  ): Promise<mGit.GitManagerStructComponentsSupplier> {
     if (isGitLabStructComponentsPopulatorContext(ctx)) {
       const apiClientCtx = ctx.manager.apiClientContext(
         ctx.manager.managerApiURL("groups", { top_level_only: true }),
@@ -167,7 +172,7 @@ export class PopulateTopLevelGroups
 }
 
 export class GitLabStructComponent
-  implements git.GitManagerHierarchicalComponent {
+  implements mGit.GitManagerHierarchicalComponent {
   protected populated: boolean;
   protected subGroups: GitLabStructComponent[] = [];
 
@@ -200,7 +205,7 @@ export class GitLabStructComponent
   }
 }
 
-export class GitLabStructure implements git.GitManagerStructure {
+export class GitLabStructure implements mGit.GitManagerStructure {
   protected groupsFetch: shc.SafeFetchJSON<gls.GitLabGroups>;
   protected populated: boolean;
   protected groups: GitLabStructComponent[] = [];
@@ -216,7 +221,7 @@ export class GitLabStructure implements git.GitManagerStructure {
 }
 
 export class GitLab
-  implements git.GitManager<GitLabStructure, GitLabRepoIdentity, GitLabRepo> {
+  implements mGit.GitManager<GitLabStructure, GitLabRepoIdentity, GitLabRepo> {
   constructor(readonly server: GitLabServer) {
   }
 
@@ -253,9 +258,9 @@ export class GitLab
   }
 
   async structure(
-    ctx: git.GitManagerStructComponentsPopulatorContext =
+    ctx: mGit.GitManagerStructComponentsPopulatorContext =
       defaultGitLabStructComponentsPopulatorContext(this),
-  ): Promise<git.GitManagerStructure> {
+  ): Promise<mGit.GitManagerStructure> {
     const result = new GitLabStructure(this);
     await ctx.populator.enhance(ctx, result);
     return result;
@@ -266,13 +271,13 @@ export class GitLab
   }
 
   async repos(
-    ctx: git.ManagedGitReposContext<GitLabRepo, void>,
+    ctx: mGit.ManagedGitReposContext<GitLabRepo, void>,
   ): Promise<void> {
     throw new Error("Not implemented yet");
   }
 }
 
-export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
+export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
   readonly isGitRepo = true;
   readonly isGitHubRepo = true;
   readonly isRemoteGitRepo = true;
@@ -340,8 +345,8 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
   }
 
   async content(
-    ctx: git.ManagedGitContentContext,
-  ): Promise<git.ManagedGitContent | undefined> {
+    ctx: mGit.ManagedGitContentContext,
+  ): Promise<mGit.ManagedGitContent | undefined> {
     const apiClientCtx = this.apiClientContext(
       this.groupRepoApiURL(
         "projects/:encodedGroupRepo/repository/files/:filePath/raw",
@@ -350,6 +355,6 @@ export class GitLabRepo implements git.ManagedGitRepo<GitLabRepoIdentity> {
       shc.defaultTraverseOptions(),
     );
     const tr = await shc.traverse(apiClientCtx);
-    return git.prepareManagedGitContent(ctx, apiClientCtx, tr);
+    return mGit.prepareManagedGitContent(ctx, apiClientCtx, tr);
   }
 }
