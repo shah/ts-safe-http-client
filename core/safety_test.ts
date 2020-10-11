@@ -17,7 +17,7 @@ Deno.test(`type guard`, async () => {
   ta.assert(!isTestType({ invalidPropName: "test prop value" }));
 });
 
-Deno.test(`type arry guard`, async () => {
+Deno.test(`type array guard`, async () => {
   ta.assert(
     isTestTypeArray(
       [

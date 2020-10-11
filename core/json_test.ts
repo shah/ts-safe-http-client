@@ -19,11 +19,14 @@ Deno.test(`typesafe HTTP request with JSON type guard`, async () => {
     mod.jsonTraverseOptions({
       guard: isGitHubRepoTags,
       onGuardFailure: (json: unknown): undefined => {
-        console.log("\n\GUARD FAILURE***");
+        console.log("\n***\nGUARD FAILURE, should not happen");
         return undefined;
       },
     }),
     (tr: mod.TraversalResult): undefined => {
+      console.log(
+        "\n***\nHTTP failuare, should not happen, see TraversalResult for debugging data",
+      );
       console.dir(tr);
       return undefined;
     },
