@@ -21,7 +21,6 @@ export type ContentAbstract = string;
 export interface HtmlContentContext {
   readonly uri: string;
   readonly htmlSource: string;
-  // readonly document: CheerioStatic;
 }
 
 export interface HtmlContent {

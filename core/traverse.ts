@@ -1,5 +1,4 @@
-import { safety } from "./deps.ts";
-import * as html from "./html.ts";
+import { queryableHTML as html, safety } from "./deps.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
