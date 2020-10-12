@@ -71,7 +71,7 @@ export function jsonTraverseOptions<T>(
 ): tr.TraverseOptions {
   const result: tr.TraverseOptions = {
     ...override,
-    trEnhancer: override?.trEnhancer || safety.enhancer(
+    trEnhancer: override?.trEnhancer || safety.enhancementsPipe(
       new DetectJsonContent<T>(override?.guard, override?.onGuardFailure),
     ),
   };

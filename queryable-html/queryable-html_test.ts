@@ -22,7 +22,7 @@ interface TestCase {
   }[];
 }
 
-const enrichHtmlContent: mod.HtmlContentEnhancer = safety.enhancer(
+const enrichHtmlContent: mod.HtmlContentEnhancer = safety.enhancementsPipe(
   mod.EnrichQueryableHtmlContent.singleton,
   mod.BuildCuratableContent.singleton,
   mod.StandardizeCurationTitle.singleton,

@@ -13,10 +13,10 @@ export const isTraveralResultFavIcon = safety.typeGuardCustom<
 export class TraversalResultFavIconEnhancer
   implements tr.TraversalResultEnhancer {
   static readonly followOnly = new TraversalResultFavIconEnhancer(
-    safety.enhancer(tr.ValidateStatus.singleton),
+    safety.enhancementsPipe(tr.ValidateStatus.singleton),
   );
   static readonly followAndDownload = new TraversalResultFavIconEnhancer(
-    safety.enhancer(
+    safety.enhancementsPipe(
       tr.ValidateStatus.singleton,
       // TODO: DownloadContent.singleton,
     ),

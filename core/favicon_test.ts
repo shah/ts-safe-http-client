@@ -10,7 +10,7 @@ Deno.test(`valid HTTP request with HTML Content and favIcon supplier`, async () 
       request: endpoint,
       options: {
         ...options,
-        trEnhancer: safety.enhancer(
+        trEnhancer: safety.enhancementsPipe(
           options.trEnhancer,
           mod.TraversalResultFavIconEnhancer.followOnly,
         ),

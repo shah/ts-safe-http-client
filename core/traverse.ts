@@ -351,16 +351,16 @@ export function defaultTraverseOptions(
 ): TraverseOptions {
   return {
     trEnhancer: override?.trEnhancer ||
-      safety.enhancer(
+      safety.enhancementsPipe(
         RemoveLabelLineBreaksAndTrimSpaces.singleton,
         DetectMetaRefreshRedirect.singleton,
       ),
     riEnhancer: override?.riEnhancer ||
-      safety.enhancerSync(RemoveRequestTrackingCodes.singleton),
+      safety.enhancementsPipeSync(RemoveRequestTrackingCodes.singleton),
     turlEnhancer: override?.turlEnhancer ||
-      safety.enhancerSync(RemoveTerminalUrlTrackingCodes.singleton),
+      safety.enhancementsPipeSync(RemoveTerminalUrlTrackingCodes.singleton),
     htmlContentEnhancer: override?.htmlContentEnhancer ||
-      safety.enhancer(
+      safety.enhancementsPipe(
         html.EnrichQueryableHtmlContent.singleton,
         html.BuildCuratableContent.singleton,
         html.StandardizeCurationTitle.singleton,

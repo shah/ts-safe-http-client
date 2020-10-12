@@ -104,7 +104,8 @@ export class TraversalResultDownloader implements tr.TraversalResultEnhancer {
           ),
         ];
       });
-    this.downloadEnhancer = options?.downloadEnhancer || safety.enhancer();
+    this.downloadEnhancer = options?.downloadEnhancer ||
+      safety.enhancementsPipe();
   }
 
   async enhance(
