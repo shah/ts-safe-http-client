@@ -1,5 +1,5 @@
 import { testingAsserts as ta } from "../deps-test.ts";
-import { safety } from "./deps.ts";
+import { inspect as insp, safety } from "./deps.ts";
 import * as mod from "./mod.ts";
 
 export interface GitHubRepoTag {
@@ -17,14 +17,14 @@ Deno.test(`typesafe HTTP request with JSON type guard`, async () => {
   const endpoint = `https://api.github.com/repos/shah/ts-safe-http-client/tags`;
   const tags = await mod.safeFetchJSON<GitHubRepoTags>(
     { request: endpoint },
-    mod.jsonTraverseOptions({
-      guard: isGitHubRepoTags,
-      onGuardFailure: (json: unknown): undefined => {
+    mod.jsonContentInspector(
+      isGitHubRepoTags,
+      (json: unknown): undefined => {
         console.log("\n***\nGUARD FAILURE, should not happen");
         return undefined;
       },
-    }),
-    (tr: mod.TraversalResult): undefined => {
+    ),
+    (tr: RequestInfo | insp.InspectionResult<RequestInfo>): undefined => {
       console.log(
         "\n***\nHTTP failuare, should not happen, see TraversalResult for debugging data",
       );
@@ -42,14 +42,14 @@ Deno.test(`invalid HTTP request (bad URL) with JSON type guard`, async () => {
   let invalidJsonEncountered = false;
   const tags = await mod.safeFetchJSON<GitHubRepoTags>(
     { request: endpoint },
-    mod.jsonTraverseOptions({
-      guard: isGitHubRepoTags,
-      onGuardFailure: (json: unknown): undefined => {
+    mod.jsonContentInspector(
+      isGitHubRepoTags,
+      (json: unknown): undefined => {
         invalidJsonEncountered = true;
         return undefined;
       },
-    }),
-    (tr: mod.TraversalResult): undefined => {
+    ),
+    (): undefined => {
       invalidResultEncountered = true;
       return undefined;
     },
@@ -66,14 +66,14 @@ Deno.test(`valid HTTP request with failed JSON type guard`, async () => {
   let invalidJsonEncountered = false;
   const contributors = await mod.safeFetchJSON(
     { request: endpoint },
-    mod.jsonTraverseOptions({
-      guard: isGitHubRepoTags, // give it a guard that will fail
-      onGuardFailure: (json: unknown): undefined => {
+    mod.jsonContentInspector(
+      isGitHubRepoTags, // give it a guard that will fail
+      (json: unknown): undefined => {
         invalidJsonEncountered = true;
         return undefined;
       },
-    }),
-    (tr: mod.TraversalResult): undefined => {
+    ),
+    (): undefined => {
       invalidResultEncountered = true;
       return undefined;
     },

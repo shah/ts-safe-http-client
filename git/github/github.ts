@@ -43,18 +43,16 @@ export class GitHub
 
   apiClientContext(
     request: RequestInfo,
-    options: shc.TraverseOptions,
+    options?: shc.TraverseOptions,
   ): GitHubHttpClientContext {
     return {
       isManagedGitRepoEndpointContext: true,
       request,
-      options,
+      options: options || shc.defaultTraverseOptions(),
     };
   }
 
-  async structure(
-    ctx: mGit.GitManagerStructComponentsPopulatorContext,
-  ): Promise<mGit.GitManagerStructure> {
+  async structure(): Promise<mGit.GitManagerStructure> {
     throw new Error("Not implemented yet");
   }
 
@@ -82,7 +80,7 @@ export class GitHubRepo implements mGit.ManagedGitRepo<GitHubRepoIdentity> {
 
   apiClientContext(
     request: RequestInfo,
-    options: shc.TraverseOptions,
+    options?: shc.TraverseOptions,
   ): GitHubRepoHttpClientContext {
     return {
       ...this.manager.apiClientContext(request, options),
@@ -111,11 +109,11 @@ export class GitHubRepo implements mGit.ManagedGitRepo<GitHubRepoIdentity> {
   async repoTags(): Promise<git.GitTags | undefined> {
     const apiCtx = this.apiClientContext(
       this.orgRepoApiURL("/repos/:org/:repo/tags"),
-      shc.jsonTraverseOptions<ghs.GitHubRepoTags>(
-        { guard: ghs.isGitHubRepoTags },
-      ),
     );
-    const ghTags = await this.tagsFetch(apiCtx);
+    const ghTags = await this.tagsFetch(
+      apiCtx,
+      shc.jsonContentInspector(ghs.isGitHubRepoTags),
+    );
     if (ghTags) {
       const result: git.GitTags = {
         gitRepoTags: [],

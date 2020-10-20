@@ -36,10 +36,16 @@ const followTestCases: FollowTestCase[] = [
 
 for (const tc of followTestCases) {
   Deno.test(`URL follow/transform: "${tc.originalURL}" (${tc.name})"`, async () => {
-    const result = await mod.traverse({
-      request: tc.originalURL,
-      options: tc.options,
-    });
+    const result = await mod.traverse(
+      {
+        request: tc.originalURL,
+        options: tc.options,
+      },
+      mod.inspectHttpStatus,
+      mod.inspectTextContent,
+      mod.inspectMetaRefreshRedirect,
+      mod.inspectHtmlContent,
+    );
     ta.assert(!mod.isInvalidHttpStatus(result));
     ta.assert(mod.isTraversalContent(result));
     if (tc.guard) {

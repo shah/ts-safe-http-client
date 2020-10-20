@@ -21,15 +21,15 @@ export interface GitManagerHierarchicalComponent
   readonly hasChildren: boolean;
 }
 
-export interface GitManagerStructComponentsPopulatorContext {
-  readonly isGitManagerStructComponentsPopulatorContext: true;
-  readonly populator: GitStructComponentsPopulator;
-}
+// export interface GitManagerStructComponentsPopulatorContext {
+//   readonly isGitManagerStructComponentsPopulatorContext: true;
+//   readonly populator: GitStructComponentsPopulator;
+// }
 
-// deno-lint-ignore no-empty-interface
-export interface GitStructComponentsPopulator extends
-  safety.Enhancer<
-    GitManagerStructComponentsPopulatorContext,
-    GitManagerStructComponentsSupplier
-  > {
-}
+// // deno-lint-ignore no-empty-interface
+// export interface GitStructComponentsPopulator extends
+//   safety.Enhancer<
+//     GitManagerStructComponentsPopulatorContext,
+//     GitManagerStructComponentsSupplier
+//   > {
+// }

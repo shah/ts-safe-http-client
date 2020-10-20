@@ -1,35 +1,24 @@
-import { safety } from "./deps.ts";
+import { inspect as insp, safety } from "./deps.ts";
 import * as tr from "./traverse.ts";
 
 export interface FavIconSupplier {
   readonly favIconResult: tr.TraversalResult;
 }
 
-export const isTraveralResultFavIcon = safety.typeGuardCustom<
-  tr.TraversalResult,
+export const isTraveralResultFavIcon = safety.typeGuard<
   tr.SuccessfulTraversal & FavIconSupplier
 >("favIconResult");
 
-export class TraversalResultFavIconEnhancer
-  implements tr.TraversalResultEnhancer {
-  static readonly followOnly = new TraversalResultFavIconEnhancer(
-    safety.enhancementsPipe(tr.ValidateStatus.singleton),
-  );
-  static readonly followAndDownload = new TraversalResultFavIconEnhancer(
-    safety.enhancementsPipe(
-      tr.ValidateStatus.singleton,
-      // TODO: DownloadContent.singleton,
-    ),
-  );
-
-  constructor(readonly transformer: tr.TraversalResultEnhancer) {
-  }
-
-  async enhance(
-    ctx: tr.TraverseContext,
-    instance: tr.TraversalResult,
-  ): Promise<tr.TraversalResult | tr.TraversalResult & FavIconSupplier> {
-    if (isTraveralResultFavIcon(instance)) return instance;
+export async function inspectFavIcon(
+  instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+  ctx?: insp.InspectionContext,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | tr.TraversalResult & FavIconSupplier
+> {
+  if (isTraveralResultFavIcon(instance)) return instance;
+  if (tr.isTraversalContent(instance) && tr.isTraverseContext(ctx)) {
     const favIconURL = new URL(
       typeof ctx.request == "string" ? ctx.request : ctx.request.url,
     );
@@ -37,12 +26,15 @@ export class TraversalResultFavIconEnhancer
     const fitr = await tr.traverse({
       ...ctx,
       request: favIconURL.href,
-      options: { trEnhancer: this.transformer },
-    });
-    const result: tr.TraversalResult & FavIconSupplier = {
-      ...instance,
-      favIconResult: fitr,
-    };
-    return result;
+      options: {},
+    }, tr.inspectHttpStatus);
+    if (tr.isTraversalResult(fitr)) {
+      const result: tr.TraversalResult & FavIconSupplier = {
+        ...instance,
+        favIconResult: fitr,
+      };
+      return result;
+    }
   }
+  return instance;
 }

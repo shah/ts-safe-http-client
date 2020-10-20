@@ -6,9 +6,7 @@ export interface GitManager<
   I extends repo.ManagedGitRepoIdentity,
   R extends repo.ManagedGitRepo<I>,
 > {
-  readonly structure: (
-    ctx: struct.GitManagerStructComponentsPopulatorContext,
-  ) => Promise<struct.GitManagerStructure>;
+  readonly structure: () => Promise<struct.GitManagerStructure>;
   readonly repo: (identity: I) => R;
   readonly repos: (ctx: repo.ManagedGitReposContext<R, void>) => Promise<void>;
 }

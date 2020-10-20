@@ -1,8 +1,8 @@
 import {
   git,
+  inspect as insp,
   managedGit as mGit,
   safeHttpClient as shc,
-  safety,
   urlcat,
 } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
@@ -114,62 +114,98 @@ export interface GitLabGroupPopulateOptions {
   readonly populateLabels: boolean;
 }
 
-export interface GitLabStructComponentsPopulatorContext
-  extends mGit.GitManagerStructComponentsPopulatorContext {
-  readonly manager: GitLab;
-  readonly filterGroups?: (
-    group: gls.GitLabGroup,
-  ) => GitLabGroupPopulateOptions | false;
-}
+// export interface GitLabStructComponentsPopulatorContext
+//   extends mGit.GitManagerStructComponentsPopulatorContext {
+//   readonly manager: GitLab;
+//   readonly filterGroups?: (
+//     group: gls.GitLabGroup,
+//   ) => GitLabGroupPopulateOptions | false;
+// }
 
-export const isGitLabStructComponentsPopulatorContext = safety.typeGuardCustom<
-  mGit.GitManagerStructComponentsPopulatorContext,
-  GitLabStructComponentsPopulatorContext
->("manager");
+// export const isGitLabStructComponentsPopulatorContext = safety.typeGuardCustom<
+//   mGit.GitManagerStructComponentsPopulatorContext,
+//   GitLabStructComponentsPopulatorContext
+// >("manager");
 
-export function defaultGitLabStructComponentsPopulatorContext(
+// export function defaultGitLabStructComponentsPopulatorContext(
+//   manager: GitLab,
+// ): GitLabStructComponentsPopulatorContext {
+//   return {
+//     isGitManagerStructComponentsPopulatorContext: true,
+//     manager: manager,
+//     populator: PopulateTopLevelGroups.singleton,
+//   };
+// }
+
+export function gitLabGroupsPopulator(
   manager: GitLab,
-): GitLabStructComponentsPopulatorContext {
-  return {
-    isGitManagerStructComponentsPopulatorContext: true,
-    manager: manager,
-    populator: PopulateTopLevelGroups.singleton,
+  filterGroups?: (
+    group: gls.GitLabGroup,
+  ) => GitLabGroupPopulateOptions | false,
+): insp.Inspector<GitLabStructure> {
+  return async (
+    target:
+      | GitLabStructure
+      | insp.InspectionResult<GitLabStructure>,
+  ): Promise<
+    | GitLabStructure
+    | insp.InspectionResult<GitLabStructure>
+  > => {
+    const instance = insp.inspectionTarget(target);
+    const apiClientCtx = manager.apiClientContext(
+      manager.managerApiURL("groups", { top_level_only: true }),
+    );
+    const groups = await shc.safeFetchJSON<gls.GitLabGroups>(
+      apiClientCtx,
+      shc.jsonContentInspector(gls.isGitLabGroups),
+    );
+    if (groups) {
+      for (const group of groups) {
+        let gpo: GitLabGroupPopulateOptions | false = false;
+        if (filterGroups) {
+          gpo = filterGroups(group);
+          if (!gpo) continue;
+        }
+        instance.components.push(new GitLabStructComponent(group));
+      }
+    }
+    return target;
   };
 }
 
-export class PopulateTopLevelGroups
-  implements mGit.GitStructComponentsPopulator {
-  static readonly singleton = new PopulateTopLevelGroups();
+// export class PopulateTopLevelGroups
+//   implements mGit.GitStructComponentsPopulator {
+//   static readonly singleton = new PopulateTopLevelGroups();
 
-  async enhance(
-    ctx: mGit.GitManagerStructComponentsPopulatorContext,
-    instance: mGit.GitManagerStructComponentsSupplier,
-  ): Promise<mGit.GitManagerStructComponentsSupplier> {
-    if (isGitLabStructComponentsPopulatorContext(ctx)) {
-      const apiClientCtx = ctx.manager.apiClientContext(
-        ctx.manager.managerApiURL("groups", { top_level_only: true }),
-        shc.jsonTraverseOptions<gls.GitLabGroups>(
-          { guard: gls.isGitLabGroups },
-        ),
-      );
-      const groups = await shc.safeFetchJSON<gls.GitLabGroups>(
-        apiClientCtx,
-      );
-      if (groups) {
-        for (const group of groups) {
-          let gpo: GitLabGroupPopulateOptions | false = false;
-          if (ctx.filterGroups) {
-            gpo = ctx.filterGroups(group);
-            if (!gpo) continue;
-          }
-          const component = new GitLabStructComponent(group);
-          instance.components.push(component);
-        }
-      }
-    }
-    return instance;
-  }
-}
+//   async enhance(
+//     ctx: mGit.GitManagerStructComponentsPopulatorContext,
+//     instance: mGit.GitManagerStructComponentsSupplier,
+//   ): Promise<mGit.GitManagerStructComponentsSupplier> {
+//     if (isGitLabStructComponentsPopulatorContext(ctx)) {
+//       const apiClientCtx = ctx.manager.apiClientContext(
+//         ctx.manager.managerApiURL("groups", { top_level_only: true }),
+//         shc.jsonTraverseOptions<gls.GitLabGroups>(
+//           { guard: gls.isGitLabGroups },
+//         ),
+//       );
+//       const groups = await shc.safeFetchJSON<gls.GitLabGroups>(
+//         apiClientCtx,
+//       );
+//       if (groups) {
+//         for (const group of groups) {
+//           let gpo: GitLabGroupPopulateOptions | false = false;
+//           if (ctx.filterGroups) {
+//             gpo = ctx.filterGroups(group);
+//             if (!gpo) continue;
+//           }
+//           const component = new GitLabStructComponent(group);
+//           instance.components.push(component);
+//         }
+//       }
+//     }
+//     return instance;
+//   }
+// }
 
 export class GitLabStructComponent
   implements mGit.GitManagerHierarchicalComponent {
@@ -222,6 +258,8 @@ export class GitLabStructure implements mGit.GitManagerStructure {
 
 export class GitLab
   implements mGit.GitManager<GitLabStructure, GitLabRepoIdentity, GitLabRepo> {
+  readonly topLevelgroupsPopulator = gitLabGroupsPopulator(this);
+
   constructor(readonly server: GitLabServer) {
   }
 
@@ -236,13 +274,13 @@ export class GitLab
 
   apiClientContext(
     request: RequestInfo,
-    options: shc.TraverseOptions,
+    options?: shc.TraverseOptions,
   ): GitLabHttpClientContext {
     return {
       isManagedGitRepoEndpointContext: true,
       request: request,
       requestInit: this.apiRequestInit(),
-      options: options,
+      options: options || shc.defaultTraverseOptions(),
     };
   }
 
@@ -257,13 +295,11 @@ export class GitLab
     );
   }
 
-  async structure(
-    ctx: mGit.GitManagerStructComponentsPopulatorContext =
-      defaultGitLabStructComponentsPopulatorContext(this),
-  ): Promise<mGit.GitManagerStructure> {
-    const result = new GitLabStructure(this);
-    await ctx.populator.enhance(ctx, result);
-    return result;
+  async structure(): Promise<mGit.GitManagerStructure> {
+    const populated = await this.topLevelgroupsPopulator(
+      new GitLabStructure(this),
+    );
+    return insp.inspectionTarget(populated);
   }
 
   repo(identity: GitLabRepoIdentity): GitLabRepo {
@@ -290,7 +326,7 @@ export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
 
   apiClientContext(
     request: RequestInfo,
-    options: shc.TraverseOptions,
+    options?: shc.TraverseOptions,
   ): GitLabRepoHttpClientContext {
     return {
       ...this.manager.apiClientContext(request, options),
@@ -322,11 +358,11 @@ export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
       this.groupRepoApiURL(
         "projects/:encodedGroupRepo/repository/tags",
       ),
-      shc.jsonTraverseOptions<gls.GitLabRepoTags>(
-        { guard: gls.isGitLabRepoTags },
-      ),
     );
-    const glTags = await this.tagsFetch(apiClientCtx);
+    const glTags = await this.tagsFetch(
+      apiClientCtx,
+      shc.jsonContentInspector(gls.isGitLabRepoTags),
+    );
     if (glTags) {
       const result: git.GitTags = {
         gitRepoTags: [],
@@ -354,7 +390,16 @@ export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
       ),
       shc.defaultTraverseOptions(),
     );
-    const tr = await shc.traverse(apiClientCtx);
-    return mGit.prepareManagedGitContent(ctx, apiClientCtx, tr);
+    const tr = await shc.traverse(
+      apiClientCtx,
+      shc.inspectHttpStatus,
+      shc.inspectTextContent,
+      shc.inspectHtmlContent,
+      // shc.downloadInspector(),
+      // shc.inspectFavIcon,
+    );
+    return shc.isTraversalContent(tr)
+      ? mGit.prepareManagedGitContent(ctx, apiClientCtx, tr)
+      : undefined;
   }
 }

@@ -1,4 +1,4 @@
-import { safety } from "./deps.ts";
+import { inspect as insp, safety } from "./deps.ts";
 import * as tr from "./traverse.ts";
 
 // TODO: Add strongly-typed validation libraries in guards
@@ -17,9 +17,9 @@ export interface TraversalJsonContent<T> extends tr.TraversalStructuredContent {
 }
 
 export function isTraversalJsonContent<T>(
-  o: tr.TraversalResult,
+  o: unknown,
 ): o is TraversalJsonContent<T> {
-  return "jsonInstance" in o;
+  return o && typeof o === "object" && "jsonInstance" in o;
 }
 
 export interface DetectJsonContentGuard<T> {
@@ -30,62 +30,42 @@ export interface DetectJsonContentGuardFailure<T> {
   (instance: tr.SuccessfulTraversal): T | undefined;
 }
 
-export class DetectJsonContent<T> implements tr.TraversalResultEnhancer {
-  constructor(
-    readonly guard?: DetectJsonContentGuard<T>,
-    readonly onGuardFailure?: DetectJsonContentGuardFailure<T>,
-  ) {
-  }
-
-  isProperContentType(instance: tr.TraversalContent): boolean {
-    return instance.contentType.startsWith("application/json");
-  }
-
-  async enhance(
-    ctx: tr.TraverseContext,
-    instance: tr.SuccessfulTraversal,
-  ): Promise<tr.SuccessfulTraversal | tr.TraversalTextContent> {
-    instance = await tr.ValidateStatus.singleton.enhance(ctx, instance);
+export function jsonContentInspector<T>(
+  guard?: DetectJsonContentGuard<T>,
+  onGuardFailure?: DetectJsonContentGuardFailure<T>,
+): insp.Inspector<RequestInfo> {
+  return async (
+    instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+  ): Promise<
+    | RequestInfo
+    | insp.InspectionResult<RequestInfo>
+    | TraversalJsonContent<T>
+  > => {
     if (isTraversalJsonContent(instance)) return instance;
     if (tr.isTraversalContent(instance)) {
-      if (this.isProperContentType(instance)) {
-        const textContent: TraversalJsonContent<T> = {
+      if (instance.contentType.startsWith("application/json")) {
+        const struct: TraversalJsonContent<T> = {
           ...instance,
           isStructuredContent: true,
           jsonInstance: await instance.response.json(),
-          guard: this.guard,
-          onGuardFailure: this.onGuardFailure,
+          guard: guard,
+          onGuardFailure: onGuardFailure,
         };
-        return textContent;
+        return struct;
       }
     }
     return instance;
-  }
-}
-
-export function jsonTraverseOptions<T>(
-  override?: Partial<tr.TraverseOptions> & {
-    guard?: DetectJsonContentGuard<T>;
-    onGuardFailure?: DetectJsonContentGuardFailure<T>;
-  },
-): tr.TraverseOptions {
-  const result: tr.TraverseOptions = {
-    ...override,
-    trEnhancer: override?.trEnhancer || safety.enhancementsPipe(
-      new DetectJsonContent<T>(override?.guard, override?.onGuardFailure),
-    ),
   };
-  return result;
 }
 
 export interface SafeFetchJsonResultFailureHandler<T> {
-  (ttc: tr.TraversalResult): T | undefined;
+  (ttc: RequestInfo | insp.InspectionResult<RequestInfo>): T | undefined;
 }
 
 export interface SafeFetchJSON<T> {
   (
     req: tr.Requestable,
-    options?: tr.TraverseOptions,
+    inspector: insp.Inspector<RequestInfo>,
     onInvalidResult?: SafeFetchJsonResultFailureHandler<T>,
   ): Promise<T | undefined>;
 }
@@ -95,10 +75,14 @@ export interface SafeFetchJSON<T> {
 
 export async function safeFetchJSON<T>(
   req: tr.Requestable,
-  options: tr.TraverseOptions = jsonTraverseOptions<T>(),
+  inspectJSON: insp.Inspector<RequestInfo>,
   onInvalidResult?: SafeFetchJsonResultFailureHandler<T>,
 ): Promise<T | undefined> {
-  const travResult = await tr.traverse({ ...req, options });
+  const travResult = await tr.traverse(
+    { ...req, options: {} },
+    tr.inspectHttpStatus,
+    inspectJSON,
+  );
   if (isTraversalJsonContent<T>(travResult)) {
     if (travResult.guard) {
       if (travResult.guard(travResult.jsonInstance, travResult)) {

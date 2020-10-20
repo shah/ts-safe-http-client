@@ -1,43 +1,14 @@
-import { queryableHTML as html, safety } from "./deps.ts";
+import {
+  inspect as insp,
+  inspectText as inspT,
+  queryableHTML as html,
+  safety,
+} from "./deps.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
-export type RequestInfoEnhancer = safety.EnhancerSync<
-  TraverseContext,
-  RequestInfo
->;
-
-export type TerminalUrlEnhancer = safety.EnhancerSync<
-  TraverseContext,
-  string
->;
-
-export class RemoveRequestTrackingCodes implements RequestInfoEnhancer {
-  static readonly singleton = new RemoveRequestTrackingCodes();
-  static readonly pattern = /(?<=&|\?)utm_.*?(&|$)/igm;
-
-  enhance(_: TraverseContext, request: RequestInfo): RequestInfo {
-    if (typeof request === "string") {
-      return request.replace(RemoveRequestTrackingCodes.pattern, "");
-    }
-    return request;
-  }
-}
-
-export class RemoveTerminalUrlTrackingCodes implements TerminalUrlEnhancer {
-  static readonly singleton = new RemoveTerminalUrlTrackingCodes();
-  static readonly pattern = RemoveRequestTrackingCodes.pattern;
-
-  enhance(_: TraverseContext, url: string): string {
-    if (url && url.length > 0) {
-      let result = url.replace(RemoveTerminalUrlTrackingCodes.pattern, "")
-        .trim();
-      if (result.endsWith("?")) result = result.substr(0, result.length - 1);
-      return result;
-    }
-    return url;
-  }
-}
+export type RequestInfoInspector = insp.InspectionPipe<RequestInfo>;
+export type TerminalUrlInspector = insp.InspectionPipe<string>;
 
 export interface Requestable {
   readonly request: RequestInfo;
@@ -48,71 +19,76 @@ export interface Labelable {
   readonly label?: string;
 }
 
-export interface TraverseContext extends Requestable, Labelable {
-  readonly parent?: TraverseContext;
+export interface TraverseContext
+  extends insp.InspectionContext, Requestable, Labelable {
+  readonly parent?: insp.InspectionContext;
   readonly options: TraverseOptions;
 }
 
+export const isTraverseContext = safety.typeGuard<TraverseContext>(
+  "request",
+  "options",
+);
+
 export interface TraverseOptions {
-  readonly trEnhancer: TraversalResultEnhancer;
-  readonly riEnhancer?: RequestInfoEnhancer;
-  readonly turlEnhancer?: TerminalUrlEnhancer;
+  readonly riEnhancer?: RequestInfoInspector;
+  readonly turlEnhancer?: TerminalUrlInspector;
   readonly htmlContentEnhancer?: html.HtmlContentEnhancer;
 }
 
-export interface TraversalResult extends Requestable, Labelable {
+export interface TraversalResult
+  extends insp.InspectionResult<RequestInfo>, Requestable, Labelable {
   readonly isTraversalResult: true;
 }
 
-export type TraversalResultEnhancer = safety.Enhancer<
-  TraverseContext,
-  TraversalResult
->;
+export const isTraversalResult = safety.typeGuard<TraversalResult>(
+  "isTraversalResult",
+);
 
-export interface TransformedTraversalResult extends TraversalResult {
-  readonly transformedFrom: TraversalResult;
-  readonly position: number;
-  readonly remarks?: string;
+export interface TransformedTraversalResult
+  extends TraversalResult, insp.TransformerProvenance<TraversalResult> {
 }
 
 export const isTransformedTraversalResult = safety.typeGuard<
   TransformedTraversalResult
 >(
-  "transformedFrom",
+  "from",
   "position",
 );
 
-export function nextTransformationPosition(
-  o: TraversalResult,
-): number {
-  return isTransformedTraversalResult(o) ? o.position + 1 : 0;
-}
-
-export interface UnsuccessfulTraversal extends TraversalResult {
-  readonly error: Error;
+export interface UnsuccessfulTraversal
+  extends TraversalResult, insp.InspectionException<RequestInfo> {
 }
 
 export interface SuccessfulTraversal extends TraversalResult {
+  readonly initAt: Date;
   readonly response: Response;
   readonly terminalURL: string;
 }
 
-export const isSuccessfulTraversal = safety.typeGuardCustom<
-  TraversalResult,
-  SuccessfulTraversal
->(
+export const isSuccessfulTraversal = safety.typeGuard<SuccessfulTraversal>(
+  "isTraversalResult",
+  "initAt",
   "response",
   "terminalURL",
 );
 
-export interface InvalidHttpStatus extends SuccessfulTraversal {
+export interface FinalizedTraversal extends SuccessfulTraversal {
+  readonly finalizedAt: Date;
+}
+
+export const isTraversalFinalized = safety.typeGuard<FinalizedTraversal>(
+  "isTraversalResult",
+  "finalizedAt",
+);
+
+export interface InvalidHttpStatus
+  extends SuccessfulTraversal, insp.InspectionIssue<RequestInfo> {
   readonly invalidHttpStatus: number;
 }
 
-export const isInvalidHttpStatus = safety.typeGuardCustom<
-  TraversalResult,
-  InvalidHttpStatus
->(
+export const isInvalidHttpStatus = safety.typeGuard<InvalidHttpStatus>(
+  "isTraversalResult",
   "invalidHttpStatus",
 );
 
@@ -123,10 +99,8 @@ export interface TraversalContent extends SuccessfulTraversal {
   readonly writeContent: (writer: Deno.Writer) => Promise<number>;
 }
 
-export const isTraversalContent = safety.typeGuardCustom<
-  TraversalResult,
-  TraversalContent
->(
+export const isTraversalContent = safety.typeGuard<TraversalContent>(
+  "isTraversalResult",
   "httpStatus",
   "contentType",
 );
@@ -140,10 +114,10 @@ export interface TraversalStructuredContent extends TraversalContent {
   readonly isStructuredContent: boolean;
 }
 
-export const isTraversalStructuredContent = safety.typeGuardCustom<
-  TraversalResult,
+export const isTraversalStructuredContent = safety.typeGuard<
   TraversalStructuredContent
 >(
+  "isTraversalResult",
   "isStructuredContent",
 );
 
@@ -151,10 +125,8 @@ export interface TraversalTextContent extends TraversalContent {
   readonly bodyText: string;
 }
 
-export const isTraversalTextContent = safety.typeGuardCustom<
-  TraversalResult,
-  TraversalTextContent
->(
+export const isTraversalTextContent = safety.typeGuard<TraversalTextContent>(
+  "isTraversalResult",
   "bodyText",
 );
 
@@ -163,7 +135,7 @@ export interface TraversalHtmlContent extends TraversalTextContent {
 }
 
 export function isTraversalHtmlContent(
-  o: TraversalResult,
+  o: unknown,
 ): o is TraversalHtmlContent {
   return isTraversalTextContent(o) && "htmlContent" in o;
 }
@@ -172,54 +144,49 @@ export interface TraversalContentRedirect extends TransformedTraversalResult {
   readonly contentRedirectUrl: string;
 }
 
-export const isTraversalRedirect = safety.typeGuardCustom<
-  TraversalResult,
+export const isTraversalContentRedirect = safety.typeGuard<
   TraversalContentRedirect
 >(
+  "isTraversalResult",
   "contentRedirectUrl",
 );
 
-export class RemoveLabelLineBreaksAndTrimSpaces
-  implements TraversalResultEnhancer {
-  static readonly singleton = new RemoveLabelLineBreaksAndTrimSpaces();
-
-  async enhance(
-    _: TraverseContext,
-    instance: SuccessfulTraversal,
-  ): Promise<SuccessfulTraversal | TransformedTraversalResult> {
-    if (!instance.label) {
-      return instance;
-    }
-
+export async function removeLabelLineBreaksAndTrimSpaces(
+  instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+): Promise<
+  RequestInfo | insp.InspectionResult<RequestInfo> | TransformedTraversalResult
+> {
+  if (isSuccessfulTraversal(instance)) {
+    if (!instance.label) return instance;
     const cleanLabel = instance.label.replace(/\r\n|\n|\r/gm, " ").trim();
     if (cleanLabel != instance.label) {
       const result: TransformedTraversalResult = {
         ...instance,
-        transformedFrom: instance,
+        from: instance,
         label: cleanLabel,
-        position: nextTransformationPosition(instance),
+        position: insp.nextTransformerProvenancePosition(instance),
         remarks: "Removed line breaks and trimmed spaces in label",
       };
       return result;
     }
-    return instance;
   }
+  return instance;
 }
 
-export class ValidateStatus implements TraversalResultEnhancer {
-  static readonly singleton = new ValidateStatus();
+export async function inspectHttpStatus(
+  instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | TraversalResult
+  | TraversalContent
+  | InvalidHttpStatus
+> {
+  if (isTraversalContent(instance) || isInvalidHttpStatus(instance)) {
+    return instance;
+  }
 
-  async enhance(
-    ctx: TraverseContext,
-    instance: SuccessfulTraversal,
-  ): Promise<TraversalContent | InvalidHttpStatus> {
-    if (
-      isTraversalContent(instance) ||
-      isInvalidHttpStatus(instance)
-    ) {
-      return instance;
-    }
-
+  if (isSuccessfulTraversal(instance)) {
     if (instance.response.status == 200) {
       const contentType = instance.response.headers.get("Content-Type");
       const contentDisp = instance.response.headers.get("Content-Disposition");
@@ -241,124 +208,113 @@ export class ValidateStatus implements TraversalResultEnhancer {
 
     const result: InvalidHttpStatus = {
       ...instance,
+      isInspectionIssue: true,
       invalidHttpStatus: instance.response.status,
     };
     return result;
   }
+
+  return instance;
 }
 
-export class DetectTextContent implements TraversalResultEnhancer {
-  static readonly singleton = new DetectTextContent();
-
-  constructor(
-    readonly statusValidator: ValidateStatus = ValidateStatus.singleton,
-  ) {
-  }
-
-  isProperContentType(instance: TraversalContent): boolean {
-    return instance.contentType.startsWith("text/");
-  }
-
-  async htmlContent(
-    ctx: TraverseContext,
-    instance: TraversalContent,
-    bodyText: string,
-  ): Promise<html.HtmlContent | undefined> {
-    if (instance.contentType.startsWith("text/html")) {
-      return ctx.options.htmlContentEnhancer?.enhance({
-        uri: instance.terminalURL,
-        htmlSource: bodyText,
-      });
+export async function inspectTextContent(
+  instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | TraversalTextContent
+> {
+  if (isTraversalTextContent(instance)) return instance;
+  if (isTraversalContent(instance)) {
+    if (instance.contentType.startsWith("text/")) {
+      const bodyText = await instance.response.text();
+      const result: TraversalTextContent = {
+        ...instance,
+        bodyText: bodyText,
+        writeContent: async (writer: Deno.Writer): Promise<number> => {
+          await writer.write(new TextEncoder().encode(bodyText));
+          return bodyText.length;
+        },
+      };
+      return result;
     }
-    return undefined;
   }
 
-  async enhance(
-    ctx: TraverseContext,
-    instance: SuccessfulTraversal,
-  ): Promise<SuccessfulTraversal | TraversalTextContent> {
-    instance = await this.statusValidator.enhance(ctx, instance);
-    if (isTraversalTextContent(instance)) return instance;
-    if (isTraversalContent(instance)) {
-      if (this.isProperContentType(instance)) {
-        const bodyText = await instance.response.text();
-        let result: TraversalTextContent | TraversalHtmlContent = {
-          ...instance,
-          bodyText: bodyText,
-          writeContent: async (writer: Deno.Writer): Promise<number> => {
-            await writer.write(new TextEncoder().encode(bodyText));
-            return bodyText.length;
-          },
-        };
-        const htmlContent = await this.htmlContent(ctx, instance, bodyText);
-        if (htmlContent) {
-          result = {
-            ...result,
-            htmlContent: htmlContent,
-          };
-        }
-        return result;
-      }
-    }
-    return instance;
-  }
+  return instance;
 }
 
-export class DetectMetaRefreshRedirect implements TraversalResultEnhancer {
-  static readonly singleton = new DetectMetaRefreshRedirect();
-
-  constructor(
-    readonly metaRefreshPattern =
-      "(CONTENT|content)=[\"']0;[ ]*(URL|url)=(.*?)([\"']\s*>)",
-    readonly detectTextContent: DetectTextContent = DetectTextContent.singleton,
-  ) {
+export async function inspectHtmlContent(
+  instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+  ctx?: insp.InspectionContext,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | TraversalHtmlContent
+> {
+  if (isTraversalHtmlContent(instance)) return instance;
+  if (isTraversalTextContent(instance) && isTraverseContext(ctx)) {
+    if (
+      ctx.options.htmlContentEnhancer &&
+      instance.contentType.startsWith("text/html")
+    ) {
+      const result: TraversalHtmlContent = {
+        ...instance,
+        htmlContent: await ctx.options.htmlContentEnhancer.enhance({
+          uri: instance.terminalURL,
+          htmlSource: instance.bodyText,
+        }),
+      };
+      return result;
+    }
   }
 
-  extractMetaRefreshUrl(html: string): string | null {
-    const match = html.match(this.metaRefreshPattern);
-    return match && match.length == 5 ? match[3] : null;
-  }
+  return instance;
+}
 
-  async enhance(
-    ctx: TraverseContext,
-    instance: SuccessfulTraversal,
-  ): Promise<
-    SuccessfulTraversal | TraversalContentRedirect | TraversalTextContent
-  > {
-    instance = await this.detectTextContent.enhance(ctx, instance);
-    if (isTraversalHtmlContent(instance)) {
-      const contentRedirectUrl = this.extractMetaRefreshUrl(instance.bodyText);
+export async function inspectMetaRefreshRedirect(
+  target: RequestInfo | insp.InspectionResult<RequestInfo>,
+  ctx?: insp.InspectionContext,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | TraversalContentRedirect
+> {
+  if (isTraversalContentRedirect(target)) return target;
+  if (isTraversalTextContent(target) && isTraverseContext(ctx)) {
+    if (target.contentType.startsWith("text/html")) {
+      const metaRefreshPattern =
+        "(CONTENT|content)=[\"']0;[ ]*(URL|url)=(.*?)([\"']\s*>)";
+      const match = target.bodyText.match(metaRefreshPattern);
+      const contentRedirectUrl = match && match.length == 5 ? match[3] : null;
       if (contentRedirectUrl) {
         const redirected = await traverse(
           { ...ctx, request: contentRedirectUrl, parent: ctx },
         );
-        const result: TraversalContentRedirect = {
-          ...redirected,
-          transformedFrom: instance,
-          position: nextTransformationPosition(instance),
-          remarks: `DetectMetaRefreshRedirect(${contentRedirectUrl})`,
-          contentRedirectUrl,
-        };
-        return result;
+        if (isTraversalResult(redirected)) {
+          const result: TraversalContentRedirect = {
+            ...redirected,
+            from: target,
+            position: insp.nextTransformerProvenancePosition(target),
+            remarks: `inspectMetaRefreshRedirect(${contentRedirectUrl})`,
+            contentRedirectUrl,
+          };
+          return result;
+        }
       }
     }
-    return instance;
   }
+
+  return target;
 }
 
 export function defaultTraverseOptions(
   override?: Partial<TraverseOptions>,
 ): TraverseOptions {
   return {
-    trEnhancer: override?.trEnhancer ||
-      safety.enhancementsPipe(
-        RemoveLabelLineBreaksAndTrimSpaces.singleton,
-        DetectMetaRefreshRedirect.singleton,
-      ),
     riEnhancer: override?.riEnhancer ||
-      safety.enhancementsPipeSync(RemoveRequestTrackingCodes.singleton),
+      insp.inspectionPipe(inspT.removeUrlRequestTrackingCodes),
     turlEnhancer: override?.turlEnhancer ||
-      safety.enhancementsPipeSync(RemoveTerminalUrlTrackingCodes.singleton),
+      insp.inspectionPipe(inspT.removeUrlTextTrackingCodes),
     htmlContentEnhancer: override?.htmlContentEnhancer ||
       safety.enhancementsPipe(
         html.EnrichQueryableHtmlContent.singleton,
@@ -368,37 +324,93 @@ export function defaultTraverseOptions(
   };
 }
 
-export async function traverse(ctx: TraverseContext): Promise<TraversalResult> {
-  const { request, requestInit, options, label } = ctx;
-  try {
-    const { trEnhancer, riEnhancer, turlEnhancer } = options;
-    const response = await window.fetch(
-      riEnhancer ? riEnhancer.enhance(ctx, request) : request,
-      { ...requestInit, redirect: "follow" },
+export async function initFetch(
+  target: RequestInfo | insp.InspectionResult<RequestInfo>,
+  ctx?: insp.InspectionContext | TraverseContext,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | SuccessfulTraversal
+  | UnsuccessfulTraversal
+> {
+  if (!isTraverseContext(ctx)) {
+    return insp.inspectionIssue<RequestInfo, string>(
+      target,
+      "ctx should be TraverseContext: " + ctx,
     );
-    const start: SuccessfulTraversal = {
+  }
+
+  const initRI = insp.inspectionTarget<RequestInfo>(target);
+  const targetRI = ctx?.options.riEnhancer
+    ? insp.inspectionTarget<RequestInfo>(
+      await ctx?.options.riEnhancer(initRI, ctx),
+    )
+    : initRI;
+  try {
+    const response = await window.fetch(
+      targetRI,
+      { ...ctx?.requestInit, redirect: "follow" },
+    );
+    const terminalURL = ctx?.options.turlEnhancer
+      ? insp.inspectionTarget<string>(
+        await ctx?.options.turlEnhancer(response.url, ctx),
+      )
+      : response.url;
+    const result: SuccessfulTraversal = {
+      isInspectionResult: true,
+      inspectionTarget: targetRI,
       isTraversalResult: true,
+      initAt: new Date(),
       response,
-      request,
-      requestInit,
-      label,
-      terminalURL: turlEnhancer
-        ? turlEnhancer.enhance(ctx, response.url)
-        : response.url,
+      request: targetRI,
+      requestInit: ctx?.requestInit,
+      label: ctx?.label,
+      terminalURL: terminalURL,
     };
-    const result = await trEnhancer.enhance(ctx, start);
-    if (!response.bodyUsed) response.body?.cancel();
     return result;
   } catch (error) {
     const result: UnsuccessfulTraversal = {
+      isInspectionResult: true,
+      inspectionTarget: targetRI,
+      isInspectionIssue: true,
+      isInspectionException: true,
       isTraversalResult: true,
-      request,
-      requestInit,
-      label,
-      error,
+      request: targetRI,
+      requestInit: ctx?.requestInit,
+      label: ctx?.label,
+      exception: error,
     };
     return result;
   }
+}
+
+export async function finalizeFetch(
+  target: RequestInfo | insp.InspectionResult<RequestInfo>,
+): Promise<
+  RequestInfo | insp.InspectionResult<RequestInfo> | FinalizedTraversal
+> {
+  if (isTraversalFinalized(target)) return target;
+  if (isSuccessfulTraversal(target)) {
+    if (!target.response.bodyUsed) target.response.body?.cancel();
+    const result: FinalizedTraversal = {
+      ...target,
+      finalizedAt: new Date(),
+    };
+    return result;
+  }
+  return target;
+}
+
+export async function traverse(
+  ctx: TraverseContext,
+  ...inspectors: insp.Inspector<RequestInfo>[]
+): Promise<RequestInfo | insp.InspectionResult<RequestInfo>> {
+  const pipe = insp.inspectionPipe<RequestInfo, string, Error>(
+    initFetch,
+    ...inspectors,
+    finalizeFetch,
+  );
+  return await pipe(ctx.request, ctx);
 }
 
 export function contentDispositionParams(
