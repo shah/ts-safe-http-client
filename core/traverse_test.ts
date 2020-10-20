@@ -13,7 +13,7 @@ const followTestCases: FollowTestCase[] = [
   {
     // In bitly.com this is called "github.com/shah/ts-safe-http-client unit test case 001" and redirects to
     // "https://www.netspective.com/?utm_source=github.com_shah_ts-safe-http-client_test001&utm_medium=unit_test&utm_campaign=followTestCase"
-    // but the terminal URL should be cleaned of utm_* because mod.defaultTraversalOptions() has turEnhancer which removes utm_* codes
+    // but the terminal URL should be cleaned of utm_* because mod.defaultTraversalOptions() has turlInspector which removes utm_* codes
     name:
       "Netspective.com redirect with only utm_* params from Netspective bit.ly account",
     originalURL: "https://bit.ly/34EIc4U",
@@ -24,7 +24,7 @@ const followTestCases: FollowTestCase[] = [
   {
     // In bitly.com this is called "github.com/shah/ts-safe-http-client unit test case 002" and redirects to
     // "https://www.netspective.com/?utm_source=github.com_shah_ts-safe-http-client_test001&param=keep&utm_medium=unit_test&utm_campaign=followTestCase&param2=keep%20this%20too"
-    // but the terminal URL should be cleaned of utm_* because mod.defaultTraversalOptions() has turEnhancer which removes utm_* codes
+    // but the terminal URL should be cleaned of utm_* because mod.defaultTraversalOptions() has turlInspector which removes utm_* codes
     name:
       "Netspective.com redirect with utm_* and other test params from Netspective bit.ly account",
     originalURL: "https://bit.ly/3dj75a0",

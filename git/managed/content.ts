@@ -4,12 +4,6 @@ import { safeHttpClient as shc, safety } from "./deps.ts";
 export interface ManagedGitContentContext {
   readonly path: string;
   readonly branchOrTag?: univ.GitBranchIdentity | univ.GitTagIdentity;
-  readonly enrichContent?: ManagedGitContentEnhancer;
-}
-
-// deno-lint-ignore no-empty-interface
-export interface ManagedGitContentEnhancer
-  extends safety.Enhancer<ManagedGitContentContext, ManagedGitContent> {
 }
 
 export function prepareManagedGitContent<T>(

@@ -31,8 +31,8 @@ export const isTraverseContext = safety.typeGuard<TraverseContext>(
 );
 
 export interface TraverseOptions {
-  readonly riEnhancer?: RequestInfoInspector;
-  readonly turlEnhancer?: TerminalUrlInspector;
+  readonly riInspector?: RequestInfoInspector;
+  readonly turlInspector?: TerminalUrlInspector;
   readonly htmlContent?: html.HtmlContentInspector;
 }
 
@@ -104,11 +104,6 @@ export const isTraversalContent = safety.typeGuard<TraversalContent>(
   "httpStatus",
   "contentType",
 );
-
-export type TraversalContentEnhancer = safety.Enhancer<
-  TraverseContext,
-  TraversalContent
->;
 
 export interface TraversalStructuredContent extends TraversalContent {
   readonly isStructuredContent: boolean;
@@ -318,9 +313,9 @@ export function defaultTraverseOptions(
   override?: Partial<TraverseOptions>,
 ): TraverseOptions {
   return {
-    riEnhancer: override?.riEnhancer ||
+    riInspector: override?.riInspector ||
       insp.inspectionPipe(inspT.removeUrlRequestTrackingCodes),
-    turlEnhancer: override?.turlEnhancer ||
+    turlInspector: override?.turlInspector ||
       insp.inspectionPipe(inspT.removeUrlTextTrackingCodes),
     htmlContent: override?.htmlContent ||
       insp.inspectionPipe<
@@ -352,9 +347,9 @@ export async function initFetch(
   }
 
   const initRI = insp.inspectionTarget<RequestInfo>(target);
-  const targetRI = ctx?.options.riEnhancer
+  const targetRI = ctx?.options.riInspector
     ? insp.inspectionTarget<RequestInfo>(
-      await ctx?.options.riEnhancer(initRI, ctx),
+      await ctx?.options.riInspector(initRI, ctx),
     )
     : initRI;
   try {
@@ -362,9 +357,9 @@ export async function initFetch(
       targetRI,
       { ...ctx?.requestInit, redirect: "follow" },
     );
-    const terminalURL = ctx?.options.turlEnhancer
+    const terminalURL = ctx?.options.turlInspector
       ? insp.inspectionTarget<string>(
-        await ctx?.options.turlEnhancer(response.url, ctx),
+        await ctx?.options.turlInspector(response.url, ctx),
       )
       : response.url;
     const result: SuccessfulTraversal = {
