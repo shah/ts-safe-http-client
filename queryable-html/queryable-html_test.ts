@@ -1,5 +1,5 @@
 import { path, testingAsserts as ta } from "./deps-test.ts";
-import { safety } from "./deps.ts";
+import { inspect as insp } from "./deps.ts";
 import * as mod from "./mod.ts";
 
 function testFilePath(relTestFileName: string): string {
@@ -15,17 +15,21 @@ function testFilePath(relTestFileName: string): string {
 interface TestCase {
   readonly provenanceURL: string;
   readonly htmlContentFileName: string;
-  readonly enhancer: mod.HtmlContentEnhancer;
+  readonly inspectionPipe: mod.HtmlContentInspector;
   readonly tests: {
     purpose: string;
     testFn: (content: mod.HtmlContent) => Promise<void>;
   }[];
 }
 
-const enrichHtmlContent: mod.HtmlContentEnhancer = safety.enhancementsPipe(
-  mod.EnrichQueryableHtmlContent.singleton,
-  mod.BuildCuratableContent.singleton,
-  mod.StandardizeCurationTitle.singleton,
+const enrichHtmlContent = insp.inspectionPipe<
+  mod.HtmlSourceSupplier,
+  string,
+  Error
+>(
+  mod.inspectQueryableHtmlContent,
+  mod.inspectCuratableContent,
+  mod.inspectCurationTitle,
 );
 
 const testCases: TestCase[] = [
@@ -33,7 +37,7 @@ const testCases: TestCase[] = [
     provenanceURL:
       "https://www.foxnews.com/lifestyle/photo-of-donald-trump-look-alike-in-spain-goes-viral",
     htmlContentFileName: testFilePath("queryable-html-spec-1.html.golden"),
-    enhancer: enrichHtmlContent,
+    inspectionPipe: enrichHtmlContent,
     tests: [{
       purpose: "HTML JSON+LD",
       testFn: async (content: mod.HtmlContent): Promise<void> => {
@@ -73,7 +77,7 @@ const testCases: TestCase[] = [
   {
     provenanceURL: "https://www.impactbnd.com/blog/best-seo-news-sites",
     htmlContentFileName: testFilePath("queryable-html-spec-2.html.golden"),
-    enhancer: enrichHtmlContent,
+    inspectionPipe: enrichHtmlContent,
     tests: [{
       purpose: "Twitter title",
       testFn: async (content: mod.HtmlContent): Promise<void> => {
@@ -101,7 +105,7 @@ const testCases: TestCase[] = [
     provenanceURL:
       "https://medicaleventsguide.com/manhattan-primary-care-midtown-manhattan",
     htmlContentFileName: testFilePath("queryable-html-spec-3.html.golden"),
-    enhancer: enrichHtmlContent,
+    inspectionPipe: enrichHtmlContent,
     tests: [{
       purpose: "broken HTML JSON+LD",
       testFn: async (content: mod.HtmlContent): Promise<void> => {
@@ -128,14 +132,18 @@ for (const tc of testCases) {
   for (const test of tc.tests) {
     Deno.test(`${test.purpose}: "${tc.htmlContentFileName}"`, async () => {
       const htmlSource = Deno.readTextFileSync(tc.htmlContentFileName);
-      const context: mod.HtmlContentContext = {
+      const context: mod.HtmlSourceSupplier = {
         uri: tc.provenanceURL,
         htmlSource: htmlSource,
       };
-      const content = await tc.enhancer.enhance(context);
+      const content = await tc.inspectionPipe(context);
       ta.assert(
         content,
         `Unable to create content for ${test.purpose}: "${tc.htmlContentFileName}"`,
+      );
+      ta.assert(
+        mod.isHtmlContent(content),
+        "Should be HTML content: " + content,
       );
       await test.testFn(content);
     });

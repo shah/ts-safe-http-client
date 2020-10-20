@@ -33,7 +33,7 @@ export const isTraverseContext = safety.typeGuard<TraverseContext>(
 export interface TraverseOptions {
   readonly riEnhancer?: RequestInfoInspector;
   readonly turlEnhancer?: TerminalUrlInspector;
-  readonly htmlContentEnhancer?: html.HtmlContentEnhancer;
+  readonly htmlContent?: html.HtmlContentInspector;
 }
 
 export interface TraversalResult
@@ -254,17 +254,24 @@ export async function inspectHtmlContent(
   if (isTraversalHtmlContent(instance)) return instance;
   if (isTraversalTextContent(instance) && isTraverseContext(ctx)) {
     if (
-      ctx.options.htmlContentEnhancer &&
+      ctx.options.htmlContent &&
       instance.contentType.startsWith("text/html")
     ) {
-      const result: TraversalHtmlContent = {
-        ...instance,
-        htmlContent: await ctx.options.htmlContentEnhancer.enhance({
-          uri: instance.terminalURL,
-          htmlSource: instance.bodyText,
-        }),
-      };
-      return result;
+      const htmlContent = await ctx.options.htmlContent({
+        uri: instance.terminalURL,
+        htmlSource: instance.bodyText,
+      });
+      if (html.isHtmlContent(htmlContent)) {
+        const result: TraversalHtmlContent = {
+          ...instance,
+          htmlContent: htmlContent,
+        };
+        return result;
+      }
+      return insp.inspectionIssue(
+        instance,
+        "HTML content not available: " + htmlContent,
+      );
     }
   }
 
@@ -315,11 +322,15 @@ export function defaultTraverseOptions(
       insp.inspectionPipe(inspT.removeUrlRequestTrackingCodes),
     turlEnhancer: override?.turlEnhancer ||
       insp.inspectionPipe(inspT.removeUrlTextTrackingCodes),
-    htmlContentEnhancer: override?.htmlContentEnhancer ||
-      safety.enhancementsPipe(
-        html.EnrichQueryableHtmlContent.singleton,
-        html.BuildCuratableContent.singleton,
-        html.StandardizeCurationTitle.singleton,
+    htmlContent: override?.htmlContent ||
+      insp.inspectionPipe<
+        html.HtmlSourceSupplier,
+        string,
+        Error
+      >(
+        html.inspectQueryableHtmlContent,
+        html.inspectCuratableContent,
+        html.inspectCurationTitle,
       ),
   };
 }
