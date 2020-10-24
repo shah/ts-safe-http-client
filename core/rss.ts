@@ -29,34 +29,46 @@ export function rssContentInspector(
     defaultRssContentInspectorOptions(),
 ): insp.Inspector<RequestInfo> {
   return async (
-    instance: RequestInfo | insp.InspectionResult<RequestInfo>,
+    target: RequestInfo | insp.InspectionResult<RequestInfo>,
   ): Promise<
     | RequestInfo
     | insp.InspectionResult<RequestInfo>
     | TraversalRssContent
   > => {
-    if (isTraversalRssContent(instance)) return instance;
-    if (tr.isTraversalContent(instance)) {
+    if (isTraversalRssContent(target)) return target;
+    if (tr.isTraversalContent(target)) {
       if (
         options?.verifyMimeTypesStartWith &&
         options?.verifyMimeTypesStartWith.find((mt) =>
-          instance.contentType.startsWith(mt)
+          target.contentType.startsWith(mt)
         )
       ) {
-        const xml = await instance.response.text();
-        const [feedType, feed] = await rss.deserializeFeed(
-          xml,
-          { outputJsonFeed: true },
-        ) as [rss.FeedType, rss.JsonFeed];
-        const result: TraversalRssContent = {
-          ...instance,
-          isStructuredContent: true,
-          feed: feed,
-          feedType: feedType,
-        };
-        return result;
+        if (tr.isTraversalTextContent(target)) {
+          // if we've already read the text, don't try to read it again
+          return await textToFeed(target, target.bodyText);
+        } else {
+          // if we haven't read the text, get it from the response
+          return await textToFeed(target, await target.response.text());
+        }
       }
     }
-    return instance;
+    return target;
   };
+}
+
+export async function textToFeed(
+  target: tr.TraversalContent,
+  xml: string,
+): Promise<TraversalRssContent> {
+  const [feedType, feed] = await rss.deserializeFeed(
+    xml,
+    { outputJsonFeed: true },
+  ) as [rss.FeedType, rss.JsonFeed];
+  const result: TraversalRssContent = {
+    ...target,
+    isStructuredContent: true,
+    feed: feed,
+    feedType: feedType,
+  };
+  return result;
 }
