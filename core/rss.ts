@@ -11,11 +11,22 @@ export const isTraversalRssContent = safety.typeGuard<TraversalRssContent>(
   "feed",
 );
 
+export interface RssContentInspectorOptions {
+  readonly verifyMimeTypesStartWith?: string[];
+}
+
+export function defaultRssContentInspectorOptions(): RssContentInspectorOptions {
+  return {
+    verifyMimeTypesStartWith: [
+      "application/rss",
+      "application/xml",
+    ],
+  };
+}
+
 export function rssContentInspector(
-  verifyMimeTypes: string[] | undefined = [
-    "application/rss",
-    "application/xml",
-  ],
+  options: RssContentInspectorOptions | undefined =
+    defaultRssContentInspectorOptions(),
 ): insp.Inspector<RequestInfo> {
   return async (
     instance: RequestInfo | insp.InspectionResult<RequestInfo>,
@@ -27,8 +38,10 @@ export function rssContentInspector(
     if (isTraversalRssContent(instance)) return instance;
     if (tr.isTraversalContent(instance)) {
       if (
-        verifyMimeTypes && verifyMimeTypes.length > 0 &&
-        verifyMimeTypes.find((mt) => instance.contentType.startsWith(mt))
+        options?.verifyMimeTypesStartWith &&
+        options?.verifyMimeTypesStartWith.find((mt) =>
+          instance.contentType.startsWith(mt)
+        )
       ) {
         const xml = await instance.response.text();
         const [feedType, feed] = await rss.deserializeFeed(
