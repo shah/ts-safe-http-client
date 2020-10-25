@@ -20,6 +20,7 @@ export function defaultRssContentInspectorOptions(): RssContentInspectorOptions 
     verifyMimeTypesStartWith: [
       "application/rss",
       "application/xml",
+      "text/xml",
     ],
   };
 }

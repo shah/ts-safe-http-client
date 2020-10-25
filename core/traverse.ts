@@ -1,6 +1,7 @@
 import {
   inspect as insp,
   inspectText as inspT,
+  ky,
   queryableHTML as html,
   safety,
 } from "./deps.ts";
@@ -34,6 +35,10 @@ export interface TraverseOptions {
   readonly riInspector?: RequestInfoInspector;
   readonly turlInspector?: TerminalUrlInspector;
   readonly htmlContent?: html.HtmlContentInspector;
+
+  // this option is only available if using traverseKy HTTP client
+  // TODO: migrate this functionality from Ky directly into this module
+  readonly timeout?: number;
 }
 
 export interface TraversalResult
@@ -59,6 +64,11 @@ export const isTransformedTraversalResult = safety.typeGuard<
 export interface UnsuccessfulTraversal
   extends TraversalResult, insp.InspectionException<RequestInfo> {
 }
+
+export const isUnsuccessfulTraversal = safety.typeGuard<UnsuccessfulTraversal>(
+  "isTraversalResult",
+  "isInspectionException",
+);
 
 export interface SuccessfulTraversal extends TraversalResult {
   readonly initAt: Date;
@@ -390,6 +400,71 @@ export async function initFetch(
   }
 }
 
+export async function initFetchKy(
+  target: RequestInfo | insp.InspectionResult<RequestInfo>,
+  ctx?: insp.InspectionContext | TraverseContext,
+): Promise<
+  | RequestInfo
+  | insp.InspectionResult<RequestInfo>
+  | SuccessfulTraversal
+  | UnsuccessfulTraversal
+> {
+  if (!isTraverseContext(ctx)) {
+    return insp.inspectionIssue<RequestInfo, string>(
+      target,
+      "ctx should be TraverseContext: " + ctx,
+    );
+  }
+
+  const initRI = insp.inspectionTarget<RequestInfo>(target);
+  const targetRI = ctx?.options.riInspector
+    ? insp.inspectionTarget<RequestInfo>(
+      await ctx?.options.riInspector(initRI, ctx),
+    )
+    : initRI;
+  try {
+    const response = await ky.default.get(
+      targetRI,
+      {
+        ...ctx?.requestInit,
+        redirect: "follow",
+        //TODO: if TimeoutError occurs, it leaks async reosurces (not sure why)
+        timeout: ctx?.options.timeout || 3000,
+      },
+    );
+    const terminalURL = ctx?.options.turlInspector
+      ? insp.inspectionTarget<string>(
+        await ctx?.options.turlInspector(response.url, ctx),
+      )
+      : response.url;
+    const result: SuccessfulTraversal = {
+      isInspectionResult: true,
+      inspectionTarget: targetRI,
+      isTraversalResult: true,
+      initAt: new Date(),
+      response,
+      request: targetRI,
+      requestInit: ctx?.requestInit,
+      label: ctx?.label,
+      terminalURL: terminalURL,
+    };
+    return result;
+  } catch (error) {
+    const result: UnsuccessfulTraversal = {
+      isInspectionResult: true,
+      inspectionTarget: targetRI,
+      isInspectionIssue: true,
+      isInspectionException: true,
+      isTraversalResult: true,
+      request: targetRI,
+      requestInit: ctx?.requestInit,
+      label: ctx?.label,
+      exception: error,
+    };
+    return result;
+  }
+}
+
 export async function finalizeFetch(
   target: RequestInfo | insp.InspectionResult<RequestInfo>,
 ): Promise<
@@ -413,6 +488,18 @@ export async function traverse(
 ): Promise<RequestInfo | insp.InspectionResult<RequestInfo>> {
   const pipe = insp.inspectionPipe<RequestInfo, string, Error>(
     initFetch,
+    ...inspectors,
+    finalizeFetch,
+  );
+  return await pipe(ctx.request, ctx);
+}
+
+export async function traverseKy(
+  ctx: TraverseContext,
+  ...inspectors: insp.Inspector<RequestInfo>[]
+): Promise<RequestInfo | insp.InspectionResult<RequestInfo>> {
+  const pipe = insp.inspectionPipe<RequestInfo, string, Error>(
+    initFetchKy,
     ...inspectors,
     finalizeFetch,
   );
