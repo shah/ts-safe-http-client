@@ -15,7 +15,7 @@ function testFilePath(relTestFileName: string): string {
 interface TestCase {
   readonly provenanceURL: string;
   readonly htmlContentFileName: string;
-  readonly inspectionPipe: mod.HtmlContentInspector;
+  readonly inspectionPipe: mod.HtmlContentInspectionPipe;
   readonly tests: {
     purpose: string;
     testFn: (content: mod.HtmlContent) => Promise<void>;

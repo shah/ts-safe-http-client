@@ -32,7 +32,7 @@ export interface HtmlContent extends insp.InspectionResult<HtmlSourceSupplier> {
   readonly isHtmlContent: true;
 }
 
-export type HtmlContentInspector = insp.InspectionPipe<HtmlSourceSupplier>;
+export type HtmlContentInspectionPipe = insp.InspectionPipe<HtmlSourceSupplier>;
 
 export const isHtmlContent = safety.typeGuard<HtmlContent>("isHtmlContent");
 
@@ -133,6 +133,8 @@ export interface SocialGraph {
   readonly openGraph?: Readonly<OpenGraph>;
   readonly twitter?: Readonly<TwitterCard>;
 }
+
+export type SocialGraphInspector = insp.Inspector<SocialGraph>;
 
 export interface TransformedHtmlContent
   extends
