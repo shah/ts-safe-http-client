@@ -1,0 +1,37 @@
+<html>
+<!-- this file has a title, meta data, OpenGraph and Twitter Card -->
+
+<head>
+    <title>Good, short title</title>
+</head>
+<meta name="description"
+    content="What is Open Graph Protocol and why you need it? Learn to implement Open Graph Protocol for Facebook on your website. Open Graph Protocol Meta Tags." />
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
+<meta property="og:locale" content="en_US" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Open Graph Protocol for Facebook explained with examples" />
+<meta property="og:description"
+    content="What is Open Graph Protocol and why you need it? Learn to implement Open Graph Protocol for Facebook on your website. Open Graph Protocol Meta Tags." />
+<meta property="og:url" content="https://www.optimizesmart.com/how-to-use-open-graph-protocol/" />
+<meta property="og:site_name" content="Optimize Smart" />
+<meta property="article:publisher" content="https://www.facebook.com/optimizesmart/" />
+<meta property="article:published_time" content="2019-02-02T18:57:23+00:00" />
+<meta property="article:modified_time" content="2020-08-14T13:30:29+00:00" />
+<meta property="og:image" content="https://www.optimizesmart.com/wp-content/uploads/2010/07/open-graph-protocol.jpg" />
+<meta property="og:image:width" content="711" />
+<meta property="og:image:height" content="309" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="#Open #Graph #Protocol for #Facebook explained with examples" />
+<meta name="twitter:description"
+    content="What is Open Graph Protocol and why you need it? Learn to implement Open Graph Protocol for Facebook on your website. Open Graph Protocol Meta Tags." />
+<meta name="twitter:image" content="https://www.optimizesmart.com/wp-content/uploads/2010/07/open-graph-protocol.jpg" />
+<meta name="twitter:creator" content="@optimizesmart" />
+<meta name="twitter:site" content="@analyticsnerd" />
+<meta name="twitter:label1" value="Written by">
+<meta name="twitter:data1" value="Himanshu">
+<meta name="twitter:label2" value="Est. reading time">
+<meta name="twitter:data2" value="5 minutes">
+
+</html>

@@ -1,52 +1,51 @@
 import { inspect as insp } from "./deps.ts";
 import * as qh from "./queryable-html.ts";
 
-export const seoInspectionPipe = insp.inspectionPipe<qh.HtmlContent>(
-  inspectTitleSEO,
-  inspectTwitterCardSEO,
-  inspectOpenGraphSEO,
-);
+export const seoInspectionPipe: qh.HtmlContentInspectionPipe = insp
+  .inspectionPipe(
+    inspectTitleSEO,
+    inspectTwitterCardSEO,
+    inspectOpenGraphSEO,
+  );
 
 export async function inspectTitleSEO(
-  target: qh.HtmlContent | insp.InspectionResult<qh.HtmlContent>,
+  html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,
 ): Promise<
-  | qh.HtmlContent
-  | insp.InspectionResult<qh.HtmlContent>
-  | insp.InspectionIssue<qh.HtmlContent>
+  | qh.HtmlSourceSupplier
+  | insp.InspectionResult<qh.HtmlSourceSupplier>
+  | insp.InspectionIssue<qh.HtmlSourceSupplier>
 > {
-  const html = insp.inspectionTarget(target);
   if (qh.isQueryableHtmlContent(html)) {
     const title = html.document("head > title").text();
     if (!title || title.length == 0) {
       return insp.inspectionIssue(
-        target,
-        "Title should be provided in SEO-friendly sites",
+        html,
+        "Title tag inside head tag should be provided in SEO-friendly sites",
       );
     }
-    return target;
+    return html;
   }
 
   return insp.inspectionIssue(
-    target,
+    html,
     "SEO-friendly sites should have queryable HTML content",
   );
 }
 
 export async function inspectTwitterCardSEO(
-  target: qh.HtmlContent | insp.InspectionResult<qh.HtmlContent>,
+  html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,
 ): Promise<
-  | qh.HtmlContent
-  | insp.InspectionResult<qh.HtmlContent>
-  | insp.InspectionResult<qh.HtmlContent> & qh.CuratableContent
+  | qh.HtmlSourceSupplier
+  | insp.InspectionResult<qh.HtmlSourceSupplier>
+  | insp.InspectionIssue<qh.HtmlSourceSupplier>
 > {
-  const html = insp.inspectionTarget(target);
   if (qh.isCuratableContent(html)) {
     const sg = html.socialGraph;
     if (!sg.twitter) {
       return insp.inspectionIssue(
-        target,
+        html,
         "Twitter Card should be provided in SEO-friendly sites",
       );
     }
@@ -58,29 +57,28 @@ export async function inspectTwitterCardSEO(
     }
     if (!sg.twitter.imageURL) diags.push("Twitter Card should have imageURL");
 
-    return diags.length > 0 ? insp.inspectionIssue(target, diags) : target;
+    return diags.length > 0 ? insp.inspectionIssue(html, diags) : html;
   } else {
     return insp.inspectionIssue(
-      target,
+      html,
       "Social Graphs should be provided in SEO-friendly sites",
     );
   }
 }
 
 export async function inspectOpenGraphSEO(
-  target: qh.HtmlContent | insp.InspectionResult<qh.HtmlContent>,
+  html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,
 ): Promise<
-  | qh.HtmlContent
-  | insp.InspectionResult<qh.HtmlContent>
-  | insp.InspectionResult<qh.HtmlContent> & qh.CuratableContent
+  | qh.HtmlSourceSupplier
+  | insp.InspectionResult<qh.HtmlSourceSupplier>
+  | insp.InspectionIssue<qh.HtmlSourceSupplier>
 > {
-  const html = insp.inspectionTarget(target);
   if (qh.isCuratableContent(html)) {
     const sg = html.socialGraph;
     if (!sg.openGraph) {
       return insp.inspectionIssue(
-        target,
+        html,
         "OpenGraph should be provided in SEO-friendly sites",
       );
     }
@@ -92,10 +90,10 @@ export async function inspectOpenGraphSEO(
     }
     if (!sg.openGraph.imageURL) diags.push("OpenGraph should have imageURL");
 
-    return diags.length > 0 ? insp.inspectionIssue(target, diags) : target;
+    return diags.length > 0 ? insp.inspectionIssue(html, diags) : html;
   } else {
     return insp.inspectionIssue(
-      target,
+      html,
       "Social Graphs should be provided in SEO-friendly sites",
     );
   }
