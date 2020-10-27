@@ -8,5 +8,4 @@ export * as randomUserAgent from "https://denopkg.com/often/rua@v1.0/mod.js";
 export * as inspect from "https://denopkg.com/shah/ts-inspect@v0.8.7/mod.ts";
 export * as inspectText from "https://denopkg.com/shah/ts-inspect@v0.8.7/text/mod.ts";
 export * as safety from "https://denopkg.com/shah/ts-safety@v0.3.0/mod.ts";
-export * as ky from "https://unpkg.com/ky@0.24.0/index.js";
 export * as queryableHTML from "../queryable-html/mod.ts";
