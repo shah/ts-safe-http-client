@@ -46,7 +46,7 @@ export interface FlexibleDownloadOption<T> {
 
 export interface TraversalResultDownloaderOptions {
   readonly destPath?: string;
-  readonly statusValidator?: insp.Inspector<RequestInfo>;
+  readonly statusValidator?: tr.RequestInfoInspector;
   readonly destination?: FlexibleDownloadOption<
     [name: string, dest: Deno.File]
   >;
@@ -69,7 +69,7 @@ export function makeTemppDirPath(prefix = "ts-safe-http-client"): string {
 
 export function downloadInspector(
   options?: TraversalResultDownloaderOptions,
-): insp.Inspector<RequestInfo> {
+): tr.RequestInfoInspector {
   const destPath = options?.destPath || makeTemppDirPath();
   const statusValidator = options?.statusValidator ||
     tr.inspectHttpStatus;

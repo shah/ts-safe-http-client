@@ -28,7 +28,7 @@ export function defaultRssContentInspectorOptions(): RssContentInspectorOptions 
 export function rssContentInspector(
   options: RssContentInspectorOptions | undefined =
     defaultRssContentInspectorOptions(),
-): insp.Inspector<RequestInfo> {
+): tr.RequestInfoInspector {
   return async (
     target: RequestInfo | insp.InspectionResult<RequestInfo>,
   ): Promise<

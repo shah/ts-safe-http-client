@@ -8,8 +8,9 @@ import {
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
-export type RequestInfoInspector = insp.InspectionPipe<RequestInfo>;
-export type TerminalUrlInspector = insp.InspectionPipe<string>;
+export type RequestInfoInspector = insp.Inspector<RequestInfo>;
+export type RequestInfoInspectionPipe = insp.InspectionPipe<RequestInfo>;
+export type TerminalUrlInspectionPipe = insp.InspectionPipe<string>;
 
 export interface Requestable {
   readonly request: RequestInfo;
@@ -32,17 +33,20 @@ export const isTraverseContext = safety.typeGuard<TraverseContext>(
 );
 
 export interface TraverseOptions {
-  readonly riInspector?: RequestInfoInspector;
-  readonly turlInspector?: TerminalUrlInspector;
-  readonly htmlContent?: html.HtmlContentInspector;
+  readonly riInspector?: RequestInfoInspectionPipe;
+  readonly turlInspector?: TerminalUrlInspectionPipe;
+  readonly htmlContent?: html.HtmlContentInspectionPipe;
 
   // this option is only available if using traverseKy HTTP client
   // TODO: migrate this functionality from Ky directly into this module
   readonly timeout?: number;
 }
 
+export type RequestInfoInspectionResult = insp.InspectionResult<RequestInfo>;
+export type RequestInfoInspectionIssue = insp.InspectionIssue<RequestInfo>;
+
 export interface TraversalResult
-  extends insp.InspectionResult<RequestInfo>, Requestable, Labelable {
+  extends RequestInfoInspectionResult, Requestable, Labelable {
   readonly isTraversalResult: true;
 }
 
@@ -93,7 +97,7 @@ export const isTraversalFinalized = safety.typeGuard<FinalizedTraversal>(
 );
 
 export interface InvalidHttpStatus
-  extends SuccessfulTraversal, insp.InspectionIssue<RequestInfo> {
+  extends SuccessfulTraversal, RequestInfoInspectionIssue {
   readonly invalidHttpStatus: number;
 }
 
@@ -484,7 +488,7 @@ export async function finalizeFetch(
 
 export async function traverse(
   ctx: TraverseContext,
-  ...inspectors: insp.Inspector<RequestInfo>[]
+  ...inspectors: RequestInfoInspector[]
 ): Promise<RequestInfo | insp.InspectionResult<RequestInfo>> {
   const pipe = insp.inspectionPipe<RequestInfo, string, Error>(
     initFetch,
@@ -496,7 +500,7 @@ export async function traverse(
 
 export async function traverseKy(
   ctx: TraverseContext,
-  ...inspectors: insp.Inspector<RequestInfo>[]
+  ...inspectors: RequestInfoInspector[]
 ): Promise<RequestInfo | insp.InspectionResult<RequestInfo>> {
   const pipe = insp.inspectionPipe<RequestInfo, string, Error>(
     initFetchKy,

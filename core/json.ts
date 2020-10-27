@@ -1,4 +1,4 @@
-import { inspect as insp, safety } from "./deps.ts";
+import { inspect as insp } from "./deps.ts";
 import * as tr from "./traverse.ts";
 
 // TODO: Add strongly-typed validation libraries in guards
@@ -33,7 +33,7 @@ export interface DetectJsonContentGuardFailure<T> {
 export function jsonContentInspector<T>(
   guard?: DetectJsonContentGuard<T>,
   onGuardFailure?: DetectJsonContentGuardFailure<T>,
-): insp.Inspector<RequestInfo> {
+): tr.RequestInfoInspector {
   return async (
     instance: RequestInfo | insp.InspectionResult<RequestInfo>,
   ): Promise<
@@ -65,7 +65,7 @@ export interface SafeFetchJsonResultFailureHandler<T> {
 export interface SafeFetchJSON<T> {
   (
     req: tr.Requestable,
-    inspector: insp.Inspector<RequestInfo>,
+    inspector: tr.RequestInfoInspector,
     onInvalidResult?: SafeFetchJsonResultFailureHandler<T>,
   ): Promise<T | undefined>;
 }
@@ -75,7 +75,7 @@ export interface SafeFetchJSON<T> {
 
 export async function safeFetchJSON<T>(
   req: tr.Requestable,
-  inspectJSON: insp.Inspector<RequestInfo>,
+  inspectJSON: tr.RequestInfoInspector,
   onInvalidResult?: SafeFetchJsonResultFailureHandler<T>,
 ): Promise<T | undefined> {
   const travResult = await tr.traverse(
