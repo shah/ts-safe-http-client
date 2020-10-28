@@ -25,7 +25,7 @@ interface TestCase {
   }[];
 }
 
-const enrichHtmlContent = insp.inspectionPipe<
+const inspectHtmlWithSEO = insp.inspectionPipe<
   mod.HtmlSourceSupplier,
   string,
   Error
@@ -41,7 +41,7 @@ const enrichHtmlContent = insp.inspectionPipe<
 const testCases: TestCase[] = [
   {
     htmlContentFileName: testFilePath("inspect-seo-spec-0.html.golden"),
-    inspectionPipe: enrichHtmlContent,
+    inspectionPipe: inspectHtmlWithSEO,
     tests: [{
       purpose: "no SEO issues",
       testFn: async (
@@ -58,7 +58,7 @@ const testCases: TestCase[] = [
   },
   {
     htmlContentFileName: testFilePath("inspect-seo-spec-1.html.golden"),
-    inspectionPipe: enrichHtmlContent,
+    inspectionPipe: inspectHtmlWithSEO,
     tests: [{
       purpose: "missing title and social graphs",
       testFn: async (
@@ -77,7 +77,7 @@ const testCases: TestCase[] = [
   },
   {
     htmlContentFileName: testFilePath("inspect-seo-spec-2.html.golden"),
-    inspectionPipe: enrichHtmlContent,
+    inspectionPipe: inspectHtmlWithSEO,
     tests: [{
       purpose: "missing Twitter card (title and OpenGraph are good)",
       testFn: async (

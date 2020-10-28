@@ -1,13 +1,6 @@
 import { inspect as insp } from "./deps.ts";
 import * as qh from "./queryable-html.ts";
 
-export const seoInspectionPipe: qh.HtmlContentInspectionPipe = insp
-  .inspectionPipe(
-    inspectTitleSEO,
-    inspectTwitterCardSEO,
-    inspectOpenGraphSEO,
-  );
-
 export async function inspectTitleSEO(
   html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,

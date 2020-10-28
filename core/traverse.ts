@@ -62,6 +62,8 @@ export const isTransformedTraversalResult = safety.typeGuard<
 
 export interface UnsuccessfulTraversal
   extends TraversalResult, insp.InspectionException<RequestInfo> {
+  readonly fetchAttemptedAt: Date;
+  readonly fetchFailedAt: Date;
 }
 
 export const isUnsuccessfulTraversal = safety.typeGuard<UnsuccessfulTraversal>(
@@ -70,14 +72,15 @@ export const isUnsuccessfulTraversal = safety.typeGuard<UnsuccessfulTraversal>(
 );
 
 export interface SuccessfulTraversal extends TraversalResult {
-  readonly initAt: Date;
+  readonly fetchAttemptedAt: Date;
+  readonly fetchCompletedAt: Date;
   readonly response: Response;
   readonly terminalURL: string;
 }
 
 export const isSuccessfulTraversal = safety.typeGuard<SuccessfulTraversal>(
   "isTraversalResult",
-  "initAt",
+  "fetchCompletedAt",
   "response",
   "terminalURL",
 );
@@ -318,6 +321,35 @@ export async function inspectMetaRefreshRedirect(
   return target;
 }
 
+export function maxPageLoadDurationInspector(
+  maxDurationMS: number,
+  message?: (duration: number) => string,
+): RequestInfoInspector {
+  return async (
+    target: RequestInfo | insp.InspectionResult<RequestInfo>,
+    ctx?: insp.InspectionContext,
+  ): Promise<
+    | RequestInfo
+    | insp.InspectionResult<RequestInfo>
+    | TraversalContentRedirect
+  > => {
+    if (isSuccessfulTraversal(target)) {
+      const loadDuration = target.fetchCompletedAt.getTime() -
+        target.fetchAttemptedAt.getTime();
+      if (loadDuration > maxDurationMS) {
+        return insp.inspectionIssue(
+          target,
+          message
+            ? message(loadDuration)
+            : `Page load took longer than ${maxDurationMS} (${loadDuration})`,
+        );
+      }
+    }
+
+    return target;
+  };
+}
+
 export function defaultTraverseOptions(
   override?: Partial<TraverseOptions>,
 ): TraverseOptions {
@@ -348,6 +380,7 @@ export async function initFetch(
   | SuccessfulTraversal
   | UnsuccessfulTraversal
 > {
+  const fetchedAt = new Date();
   if (!isTraverseContext(ctx)) {
     return insp.inspectionIssue<RequestInfo, string>(
       target,
@@ -375,7 +408,8 @@ export async function initFetch(
       isInspectionResult: true,
       inspectionTarget: targetRI,
       isTraversalResult: true,
-      initAt: new Date(),
+      fetchAttemptedAt: fetchedAt,
+      fetchCompletedAt: new Date(),
       response,
       request: targetRI,
       requestInit: ctx?.requestInit,
@@ -390,6 +424,8 @@ export async function initFetch(
       isInspectionIssue: true,
       isInspectionException: true,
       isTraversalResult: true,
+      fetchAttemptedAt: fetchedAt,
+      fetchFailedAt: new Date(),
       request: targetRI,
       requestInit: ctx?.requestInit,
       label: ctx?.label,
