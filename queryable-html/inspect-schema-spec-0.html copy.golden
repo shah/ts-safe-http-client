@@ -1,0 +1,53 @@
+<html>
+<!-- this file has a title Google Tag Manager -->
+
+<head>
+    <title>Good, short title</title>
+</head>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-XXXX');</script>
+<!-- End Google Tag Manager -->
+
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXX"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+Test body
+</body>
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "Website",
+    "headline": "Medigy",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https:\/\/www.medigy.com\/"
+      },
+    "genre": "Digital Health IT Softwares & Applications",
+    "url": "https:\/\/www.medigy.com\/",
+     "publisher": {
+      "@type": "Organization",
+      "name": "Medigy",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https:\/\/www.medigy.com\/img/Medigy Logo with caption.png",
+        "width": 127,
+        "height": 40
+      }
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Shahid Shah"
+    },
+    "description": "Discovering Solutions....... Together"
+  }
+  </script>
+  
+</html>
