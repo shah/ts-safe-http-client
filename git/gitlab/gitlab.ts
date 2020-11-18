@@ -4,6 +4,7 @@ import {
   managedGit as mGit,
   safeHttpClient as shc,
   urlcat,
+  vault as v,
 } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 
@@ -20,79 +21,66 @@ export type GitLabRepoID = string;
 export type GitLabRepoURL = string;
 
 export interface GitLabServerAuthn {
-  readonly glServerUserNamePasswdAvailable: () => boolean;
-  readonly glServerUserNamePassword: () => [user: string, passwd: string];
+  readonly userName: v.VaultAttr;
+  readonly accessToken: v.VaultAttr;
 }
 
-export function envVarAuthnAccessToken(
-  varPrefix: string,
-  onInvalid: {
-    userNamePassword: [string, string];
-    reporter?: (message: string) => void;
-  },
-): GitLabServerAuthn {
-  return {
-    glServerUserNamePasswdAvailable: (): boolean => {
-      const userName = Deno.env.get(`${varPrefix}USERNAME`);
-      const password = Deno.env.get(`${varPrefix}PASSWORD`);
-      return userName != undefined && password != undefined;
-    },
-    glServerUserNamePassword: (): [string, string] => {
-      const userName = Deno.env.get(`${varPrefix}USERNAME`);
-      const password = Deno.env.get(`${varPrefix}PASSWORD`);
-      if (userName && password) {
-        return [userName, password];
-      }
-      if (onInvalid.reporter) {
-        onInvalid.reporter(
-          `${varPrefix}_USERNAME and ${varPrefix}_PASSWORD not available in the environment`,
-        );
-      }
-      return onInvalid.userNamePassword;
-    },
-  };
-}
+export class GitLabAuthnEnvVault {
+  readonly vault: v.EnvironmentVault;
 
-export function staticAuthnAccessToken(
-  userName: string,
-  password: string,
-): GitLabServerAuthn {
-  return {
-    glServerUserNamePasswdAvailable: (): boolean => {
-      return true;
-    },
-    glServerUserNamePassword: (): [string, string] => {
-      return [userName, password];
-    },
-  };
+  constructor(vault?: v.EnvironmentVault) {
+    this.vault = vault ||
+      new v.EnvironmentVault(
+        { commonNamespace: "GITLAB_", secretsNamespace: "GITLAB_SECRET_" },
+      );
+  }
+
+  userName(hostID: string, defaultUser?: string): v.VaultAttr {
+    return this.vault.defineEnvVar(
+      `${hostID}_USER`,
+      { defaultValue: defaultUser },
+    );
+  }
+
+  accessToken(hostID: string, defaultToken?: string): v.VaultAttr {
+    return this.vault.defineEnvVar(
+      `${hostID}_TOKEN`,
+      { defaultValue: defaultToken, isSecret: true },
+    );
+  }
+
+  hostName(hostID: string, defaultHost?: string): GitLabHostname {
+    const serverHostEnvVarName = this.vault.defineEnvVar(
+      `${hostID}_HOST`,
+      { defaultValue: defaultHost },
+    );
+    return serverHostEnvVarName.value() as string;
+  }
+
+  isServerConfigAvailable(hostID: string, defaultHostName?: string): boolean {
+    const hostName = this.hostName(hostID, defaultHostName);
+    const userName = this.userName(hostID).value();
+    const accessToken = this.accessToken(hostID).value();
+    return hostName && userName && accessToken ? true : false;
+  }
+
+  server(hostID: string, defaultHostName?: string): GitLabServer | undefined {
+    const hostName = this.hostName(hostID, defaultHostName);
+    const userName = this.userName(hostID);
+    const accessToken = this.accessToken(hostID);
+    if (hostName && userName.value() && accessToken.value()) {
+      return {
+        host: hostName,
+        authn: { userName, accessToken },
+      };
+    }
+    return undefined;
+  }
 }
 
 export interface GitLabServer {
   readonly authn: GitLabServerAuthn;
   readonly host: GitLabHostname;
-}
-
-export function envVarGitLabServer(
-  serverVarName: string,
-  authn: GitLabServerAuthn,
-  onInvalid?: {
-    server?: GitLabServer;
-    reporter?: (message: string) => void;
-  },
-): GitLabServer | undefined {
-  const hostName = Deno.env.get(serverVarName);
-  if (hostName) {
-    return {
-      host: hostName,
-      authn: authn,
-    };
-  }
-  if (onInvalid?.reporter) {
-    onInvalid.reporter(
-      `${serverVarName} not available in the environment`,
-    );
-  }
-  return onInvalid?.server;
 }
 
 export interface GitLabRepoIdentity extends mGit.ManagedGitRepoIdentity {
@@ -264,10 +252,10 @@ export class GitLab
   }
 
   apiRequestInit(): RequestInit {
-    const authn = this.server.authn.glServerUserNamePassword();
+    const authn = this.server.authn.accessToken.value();
     return {
       headers: {
-        "PRIVATE-TOKEN": authn[1],
+        "PRIVATE-TOKEN": (authn as string) || "accessToken?",
       },
     };
   }
