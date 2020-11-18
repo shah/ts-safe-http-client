@@ -33,7 +33,7 @@ Deno.test(`small RSS feed`, async () => {
 Deno.test(`large RSS feed`, async () => {
   const result = await mod.traverse(
     {
-      request: `https://www.medigy.com/index.xml`,
+      request: `https://www.medigy.com/feed/latest/index.xml`,
       options: mod.defaultTraverseOptions(),
     },
     mod.inspectHttpStatus,
