@@ -1,7 +1,7 @@
 import { testingAsserts as ta } from "../deps-test.ts";
 import * as gh from "./mod.ts";
 
-Deno.test(`GitHubRepo builders`, async () => {
+Deno.test(`GitHubRepo builders`, () => {
   const repo = gh.GitHub.singleton.repo(
     { org: "shah", repo: "ts-safe-http-client" },
   );
@@ -20,7 +20,7 @@ Deno.test(`valid GitHub repo tags`, async () => {
 
   const tags = await repo.repoTags();
   ta.assert(tags, "A list of tags should be available");
-  ta.assert(tags.gitRepoTags.length > 0, "At least one tag should be found");
+  ta.assert(tags!.gitRepoTags.length > 0, "At least one tag should be found");
 });
 
 Deno.test(`invalid GitHub repo tags`, async () => {

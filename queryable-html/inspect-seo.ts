@@ -1,6 +1,8 @@
 import { inspect as insp } from "./deps.ts";
 import * as qh from "./queryable-html.ts";
 
+// inspectors are required to be async
+// deno-lint-ignore require-await
 export async function inspectTitleSEO(
   html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,
@@ -26,6 +28,7 @@ export async function inspectTitleSEO(
   );
 }
 
+// deno-lint-ignore require-await
 export async function inspectTwitterCardSEO(
   html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,
@@ -59,6 +62,7 @@ export async function inspectTwitterCardSEO(
   }
 }
 
+// deno-lint-ignore require-await
 export async function inspectOpenGraphSEO(
   html: qh.HtmlSourceSupplier | insp.InspectionResult<qh.HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,

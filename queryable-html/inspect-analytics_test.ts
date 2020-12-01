@@ -17,11 +17,17 @@ interface TestCase {
   readonly inspectionPipe: mod.HtmlContentInspectionPipe;
   readonly tests: {
     purpose: string;
-    testFn: (
-      content:
-        | mod.HtmlSourceSupplier
-        | insp.InspectionResult<mod.HtmlSourceSupplier>,
-    ) => Promise<void>;
+    testFn:
+      | ((
+        content:
+          | mod.HtmlSourceSupplier
+          | insp.InspectionResult<mod.HtmlSourceSupplier>,
+      ) => Promise<void>)
+      | ((
+        content:
+          | mod.HtmlSourceSupplier
+          | insp.InspectionResult<mod.HtmlSourceSupplier>,
+      ) => void);
   }[];
 }
 
@@ -41,11 +47,11 @@ const testCases: TestCase[] = [
     inspectionPipe: inspectHtmlWithAnalytics,
     tests: [{
       purpose: "no analytics issues",
-      testFn: async (
+      testFn: (
         content:
           | mod.HtmlSourceSupplier
           | insp.InspectionResult<mod.HtmlSourceSupplier>,
-      ): Promise<void> => {
+      ): void => {
         ta.assert(
           !insp.isInspectionIssue(content),
           "No content or SEO issues should be found",
@@ -58,11 +64,11 @@ const testCases: TestCase[] = [
     inspectionPipe: inspectHtmlWithAnalytics,
     tests: [{
       purpose: "missing Google Tag Manager code",
-      testFn: async (
+      testFn: (
         content:
           | mod.HtmlSourceSupplier
           | insp.InspectionResult<mod.HtmlSourceSupplier>,
-      ): Promise<void> => {
+      ): void => {
         ta.assert(insp.isDiagnosable(content));
         ta.assertEquals([
           "Google Tag Manager code not found: `)(window,document,'script','dataLayer','GTM-XXXX');</script>`",
@@ -89,7 +95,12 @@ for (const tc of testCases) {
         mod.isHtmlContent(content),
         "Should be HTML content: " + content,
       );
-      await test.testFn(content);
+      const isAsync = test.testFn.constructor.name === "AsyncFunction";
+      if (isAsync) {
+        await test.testFn(content);
+      } else {
+        test.testFn(content);
+      }
     });
   }
 }

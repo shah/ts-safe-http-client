@@ -283,6 +283,8 @@ export function meta(document: CheerioStatic): HtmlMeta {
   return meta;
 }
 
+// inspectors are required to be async
+// deno-lint-ignore require-await
 export async function inspectQueryableHtmlContent(
   content: HtmlSourceSupplier | insp.InspectionResult<HtmlSourceSupplier>,
   ctx?: insp.InspectionContext,

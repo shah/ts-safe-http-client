@@ -52,6 +52,7 @@ export class GitHub
     };
   }
 
+  // deno-lint-ignore require-await
   async structure(): Promise<mGit.GitManagerStructure> {
     throw new Error("Not implemented yet");
   }
@@ -60,6 +61,7 @@ export class GitHub
     return new GitHubRepo(this, identity);
   }
 
+  // deno-lint-ignore require-await
   async repos(
     ctx: mGit.ManagedGitReposContext<GitHubRepo, void>,
   ): Promise<void> {
@@ -131,6 +133,7 @@ export class GitHubRepo implements mGit.ManagedGitRepo<GitHubRepoIdentity> {
     return result ? result.gitRepoTags[0] : undefined;
   }
 
+  // deno-lint-ignore require-await
   async content(
     ctx: mGit.ManagedGitContentContext,
   ): Promise<mGit.ManagedGitContent | undefined> {

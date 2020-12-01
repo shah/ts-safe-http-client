@@ -158,6 +158,8 @@ export const isTraversalContentRedirect = safety.typeGuard<
   "contentRedirectUrl",
 );
 
+// this is used by a traversal pipe and needs to be async
+// deno-lint-ignore require-await
 export async function removeLabelLineBreaksAndTrimSpaces(
   instance: RequestInfo | insp.InspectionResult<RequestInfo>,
 ): Promise<
@@ -180,6 +182,8 @@ export async function removeLabelLineBreaksAndTrimSpaces(
   return instance;
 }
 
+// this is used by a traversal pipe and needs to be async
+// deno-lint-ignore require-await
 export async function inspectHttpStatus(
   instance: RequestInfo | insp.InspectionResult<RequestInfo>,
 ): Promise<
@@ -325,6 +329,8 @@ export function maxPageLoadDurationInspector(
   maxDurationMS: number,
   message?: (duration: number) => string,
 ): RequestInfoInspector {
+  // this is used by an inspection pipe and needs to be async
+  // deno-lint-ignore require-await
   return async (
     target: RequestInfo | insp.InspectionResult<RequestInfo>,
     ctx?: insp.InspectionContext,
@@ -435,6 +441,8 @@ export async function initFetch(
   }
 }
 
+// this is used by a traversal pipe and needs to be async
+// deno-lint-ignore require-await
 export async function finalizeFetch(
   target: RequestInfo | insp.InspectionResult<RequestInfo>,
 ): Promise<

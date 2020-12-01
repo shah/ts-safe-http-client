@@ -294,6 +294,7 @@ export class GitLab
     return new GitLabRepo(this, identity);
   }
 
+  // deno-lint-ignore require-await
   async repos(
     ctx: mGit.ManagedGitReposContext<GitLabRepo, void>,
   ): Promise<void> {

@@ -18,7 +18,7 @@ if (!glAuthnVault.isServerConfigAvailable(testHostID)) {
   Deno.exit(1);
 }
 
-Deno.test(`GitLabRepo builders`, async () => {
+Deno.test(`GitLabRepo builders`, () => {
   const glServer = glAuthnVault.server(testHostID);
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer!);

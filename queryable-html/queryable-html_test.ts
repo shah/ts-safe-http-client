@@ -18,7 +18,9 @@ interface TestCase {
   readonly inspectionPipe: mod.HtmlContentInspectionPipe;
   readonly tests: {
     purpose: string;
-    testFn: (content: mod.HtmlContent) => Promise<void>;
+    testFn:
+      | ((content: mod.HtmlContent) => void)
+      | ((content: mod.HtmlContent) => Promise<void>);
   }[];
 }
 
@@ -40,7 +42,7 @@ const testCases: TestCase[] = [
     inspectionPipe: enrichHtmlContent,
     tests: [{
       purpose: "HTML JSON+LD",
-      testFn: async (content: mod.HtmlContent): Promise<void> => {
+      testFn: (content: mod.HtmlContent) => {
         ta.assert(mod.isQueryableHtmlContent(content));
         if (mod.isQueryableHtmlContent(content)) {
           const schemas = content.untypedSchemas(true);
@@ -56,7 +58,7 @@ const testCases: TestCase[] = [
       },
     }, {
       purpose: "OpenGraph",
-      testFn: async (content: mod.HtmlContent): Promise<void> => {
+      testFn: (content: mod.HtmlContent) => {
         ta.assert(mod.isCuratableContent(content));
         if (mod.isCuratableContent(content)) {
           ta.assertEquals(
@@ -80,7 +82,7 @@ const testCases: TestCase[] = [
     inspectionPipe: enrichHtmlContent,
     tests: [{
       purpose: "Twitter title",
-      testFn: async (content: mod.HtmlContent): Promise<void> => {
+      testFn: (content: mod.HtmlContent) => {
         ta.assert(mod.isCuratableContent(content));
         if (mod.isCuratableContent(content)) {
           ta.assert(content.socialGraph);
@@ -93,7 +95,7 @@ const testCases: TestCase[] = [
       },
     }, {
       purpose: "simple HTML page meta data",
-      testFn: async (content: mod.HtmlContent): Promise<void> => {
+      testFn: (content: mod.HtmlContent) => {
         ta.assert(mod.isQueryableHtmlContent(content));
         if (mod.isQueryableHtmlContent(content)) {
           ta.assert(content.meta());
@@ -108,10 +110,10 @@ const testCases: TestCase[] = [
     inspectionPipe: enrichHtmlContent,
     tests: [{
       purpose: "broken HTML JSON+LD",
-      testFn: async (content: mod.HtmlContent): Promise<void> => {
+      testFn: (content: mod.HtmlContent) => {
         ta.assert(mod.isQueryableHtmlContent(content));
         if (mod.isQueryableHtmlContent(content)) {
-          let errorIndex: number = -1;
+          let errorIndex = -1;
           const schemas = content.untypedSchemas(
             true,
             undefined,
@@ -145,7 +147,12 @@ for (const tc of testCases) {
         mod.isHtmlContent(content),
         "Should be HTML content: " + content,
       );
-      await test.testFn(content);
+      const isAsync = test.testFn.constructor.name === "AsyncFunction";
+      if (isAsync) {
+        await test.testFn(content);
+      } else {
+        test.testFn(content);
+      }
     });
   }
 }

@@ -17,11 +17,17 @@ interface TestCase {
   readonly inspectionPipe: mod.HtmlContentInspectionPipe;
   readonly tests: {
     purpose: string;
-    testFn: (
-      content:
-        | mod.HtmlSourceSupplier
-        | insp.InspectionResult<mod.HtmlSourceSupplier>,
-    ) => Promise<void>;
+    testFn:
+      | ((
+        content:
+          | mod.HtmlSourceSupplier
+          | insp.InspectionResult<mod.HtmlSourceSupplier>,
+      ) => Promise<void>)
+      | ((
+        content:
+          | mod.HtmlSourceSupplier
+          | insp.InspectionResult<mod.HtmlSourceSupplier>,
+      ) => void);
   }[];
 }
 
@@ -44,11 +50,11 @@ const testCases: TestCase[] = [
     inspectionPipe: inspectHtmlWithSEO,
     tests: [{
       purpose: "no SEO issues",
-      testFn: async (
+      testFn: (
         content:
           | mod.HtmlSourceSupplier
           | insp.InspectionResult<mod.HtmlSourceSupplier>,
-      ): Promise<void> => {
+      ): void => {
         ta.assert(
           !insp.isInspectionIssue(content),
           "No content or SEO issues should be found",
@@ -61,11 +67,11 @@ const testCases: TestCase[] = [
     inspectionPipe: inspectHtmlWithSEO,
     tests: [{
       purpose: "missing title and social graphs",
-      testFn: async (
+      testFn: (
         content:
           | mod.HtmlSourceSupplier
           | insp.InspectionResult<mod.HtmlSourceSupplier>,
-      ): Promise<void> => {
+      ): void => {
         ta.assert(insp.isDiagnosable(content));
         ta.assertEquals([
           "Title tag inside head tag should be provided in SEO-friendly sites",
@@ -80,11 +86,11 @@ const testCases: TestCase[] = [
     inspectionPipe: inspectHtmlWithSEO,
     tests: [{
       purpose: "missing Twitter card (title and OpenGraph are good)",
-      testFn: async (
+      testFn: (
         content:
           | mod.HtmlSourceSupplier
           | insp.InspectionResult<mod.HtmlSourceSupplier>,
-      ): Promise<void> => {
+      ): void => {
         ta.assert(insp.isDiagnosable(content));
         ta.assertEquals([
           "Twitter Card should be provided in SEO-friendly sites",
@@ -111,7 +117,12 @@ for (const tc of testCases) {
         mod.isHtmlContent(content),
         "Should be HTML content: " + content,
       );
-      await test.testFn(content);
+      const isAsync = test.testFn.constructor.name === "AsyncFunction";
+      if (isAsync) {
+        await test.testFn(content);
+      } else {
+        test.testFn(content);
+      }
     });
   }
 }

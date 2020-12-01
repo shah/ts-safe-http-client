@@ -13,6 +13,7 @@ export function prepareManagedGitContent<T>(
 ): ManagedGitContent | undefined {
   const common = {
     path: mgcCtx.path,
+    // deno-lint-ignore require-await
     traverse: async (): Promise<shc.TraversalResult> => {
       return tr;
     },
@@ -24,6 +25,7 @@ export function prepareManagedGitContent<T>(
       isManagedGitContent: true,
       isManagedGitFile: true,
       isManagedGitJsonFile: true,
+      // deno-lint-ignore require-await
       content: async (): Promise<T> => {
         return tr.jsonInstance;
       },
@@ -38,6 +40,7 @@ export function prepareManagedGitContent<T>(
         isManagedGitContent: true,
         isManagedGitFile: true,
         isManagedGitJsonFile: true,
+        // deno-lint-ignore require-await
         content: async (): Promise<T> => {
           return JSON.parse(tr.bodyText);
         },
@@ -50,6 +53,7 @@ export function prepareManagedGitContent<T>(
       isManagedGitContent: true,
       isManagedGitFile: true,
       isManagedGitTextFile: true,
+      // deno-lint-ignore require-await
       content: async (): Promise<string> => {
         return tr.bodyText;
       },

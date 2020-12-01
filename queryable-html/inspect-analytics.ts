@@ -12,6 +12,7 @@ export function googleTagManagerInspector(
     `)(window,document,'script','dataLayer','${options.gtmIdentity}');</script>`,
     `iframe src="https://www.googletagmanager.com/ns.html?id=${options.gtmIdentity}"`,
   ];
+  // deno-lint-ignore require-await
   return async (
     target:
       | qh.HtmlSourceSupplier
