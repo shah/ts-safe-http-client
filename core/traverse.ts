@@ -4,6 +4,7 @@ import {
   queryableHTML as html,
   safety,
 } from "./deps.ts";
+import * as rfc8288wl from "./rfc-8288-web-link.ts";
 
 // TODO: add option to apply random user agent to HTTP header (see rua in deps.ts)
 
@@ -76,6 +77,7 @@ export interface SuccessfulTraversal extends TraversalResult {
   readonly fetchCompletedAt: Date;
   readonly response: Response;
   readonly terminalURL: string;
+  readonly httpLinkHeader?: () => rfc8288wl.Rfc8288WebLinks;
 }
 
 export const isSuccessfulTraversal = safety.typeGuard<SuccessfulTraversal>(
@@ -410,6 +412,7 @@ export async function initFetch(
         await ctx?.options.turlInspector(response.url, ctx),
       )
       : response.url;
+    const rfc8288Link = response.headers.get("Link");
     const result: SuccessfulTraversal = {
       isInspectionResult: true,
       inspectionTarget: targetRI,
@@ -421,6 +424,11 @@ export async function initFetch(
       requestInit: ctx?.requestInit,
       label: ctx?.label,
       terminalURL: terminalURL,
+      httpLinkHeader: rfc8288Link
+        ? ((): rfc8288wl.Rfc8288WebLinks => {
+          return rfc8288wl.parseRfc8288LinkHeader(rfc8288Link);
+        })
+        : undefined,
     };
     return result;
   } catch (error) {
