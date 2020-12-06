@@ -264,7 +264,7 @@ export interface GitLabGroup {
   ldap_cn: string;
   lfs_enabled: boolean;
   name: string;
-  parent_id: number;
+  parent_id: number | null;
   path: string;
   request_access_enabled: boolean;
   visibility: string;

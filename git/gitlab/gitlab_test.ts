@@ -51,8 +51,9 @@ Deno.test(`retrieve Managed Git groups`, async () => {
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer!);
   const struct = await gitLab.structure();
-  ta.assert(struct.components.length > 0);
-  //console.dir(struct);
+  ta.assert(struct.components.length > 5);
+  ta.assert(struct.components.find((c) => c.name == "Netspective Studios"));
+  ta.assert(struct.atPath("netspective-studios/git-ops-experiments"));
 });
 
 Deno.test(`retrieve Managed Git JSON`, async () => {
