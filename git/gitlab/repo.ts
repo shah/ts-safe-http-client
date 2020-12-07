@@ -1,22 +1,37 @@
 import {
   git,
-  inspect as insp,
   managedGit as mGit,
   safeHttpClient as shc,
+  safety,
   urlcat,
-  vault as v,
 } from "./deps.ts";
 import * as gls from "./gitlab-schema.ts";
 import * as gl from "./gitlab.ts";
-import * as glg from "./groups.ts";
+import * as glg from "./group.ts";
+import * as glp from "./project.ts";
 
 export type GitLabRepoID = string;
 export type GitLabRepoURL = string;
 
 export interface GitLabRepoIdentity extends mGit.ManagedGitRepoIdentity {
-  readonly group: glg.GitLabGroupID;
   readonly repo: GitLabRepoID;
 }
+
+export interface GitLabGroupRepoIdentity extends GitLabRepoIdentity {
+  readonly group: glg.GitLabGroupID;
+}
+
+export const isGitLabGroupRepoIdentity = safety.typeGuard<
+  GitLabGroupRepoIdentity
+>("repo", "group");
+
+export interface GitLabProjectRepoIdentity extends GitLabRepoIdentity {
+  readonly project: glp.GitLabProjectID;
+}
+
+export const isGitLabProjectRepoIdentity = safety.typeGuard<
+  GitLabProjectRepoIdentity
+>("repo", "project");
 
 export interface GitLabRepoHttpClientContext
   extends gl.GitLabHttpClientContext {
@@ -25,7 +40,7 @@ export interface GitLabRepoHttpClientContext
 
 export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
   readonly isGitRepo = true;
-  readonly isGitHubRepo = true;
+  readonly isGitLabRepo = true;
   readonly isRemoteGitRepo = true;
   readonly isManagedGitRepo = true;
   readonly tagsFetch: shc.SafeFetchJSON<gls.GitLabRepoTags>;
@@ -48,20 +63,33 @@ export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
   }
 
   url(): git.GitRepoRemoteURL {
-    return `https://${this.manager.server.host}/${this.identity.group}/${this.identity.repo}`;
+    if (isGitLabGroupRepoIdentity(this.identity)) {
+      return `https://${this.manager.server.host}/${this.identity.group}/${this.identity.repo}`;
+    } else if (isGitLabProjectRepoIdentity(this.identity)) {
+      return `https://${this.manager.server.host}/${this.identity.project}/${this.identity.repo}`;
+    } else {
+      return `https://${this.manager.server.host}/<unknown repo identity type>`;
+    }
   }
 
   groupRepoApiURL(
     pathTemplate: string,
     params?: urlcat.ParamMap,
   ): string {
+    let glRepoPath;
+    if (isGitLabGroupRepoIdentity(this.identity)) {
+      glRepoPath = [this.identity.group, this.identity.repo].join("/");
+    } else if (isGitLabProjectRepoIdentity(this.identity)) {
+      glRepoPath = [this.identity.project, this.identity.repo].join("/");
+    } else {
+      glRepoPath = `<unknown repo identity type>`;
+    }
     return urlcat.default(
       `https://${this.manager.server.host}/api/v4`,
       pathTemplate,
       {
         ...params,
-        // GitLab wants the group/sub-group/repo to be a single URL-encode string
-        encodedGroupRepo: [this.identity.group, this.identity.repo].join("/"),
+        encodedRepoPath: glRepoPath,
       },
     );
   }
@@ -69,7 +97,7 @@ export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
   async repoTags(): Promise<git.GitTags | undefined> {
     const apiClientCtx = this.apiClientContext(
       this.groupRepoApiURL(
-        "projects/:encodedGroupRepo/repository/tags",
+        "projects/:encodedRepoPath/repository/tags",
       ),
     );
     const glTags = await this.tagsFetch(
@@ -98,7 +126,7 @@ export class GitLabRepo implements mGit.ManagedGitRepo<GitLabRepoIdentity> {
   ): Promise<mGit.ManagedGitContent | undefined> {
     const apiClientCtx = this.apiClientContext(
       this.groupRepoApiURL(
-        "projects/:encodedGroupRepo/repository/files/:filePath/raw",
+        "projects/:encodedRepoPath/repository/files/:filePath/raw",
         { filePath: ctx.path, ref: ctx.branchOrTag || "master" },
       ),
       shc.defaultTraverseOptions(),

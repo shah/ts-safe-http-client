@@ -14,6 +14,10 @@ export interface ManagedGitRepoEndpointResult {
 export interface ManagedGitRepoIdentity {
 }
 
+// deno-lint-ignore no-empty-interface
+export interface ManagedGitProjectIdentity {
+}
+
 export interface ManagedGitRepoHandler<C, R, T> {
   (ctx: C, repo: R): Promise<T>;
 }
@@ -35,4 +39,9 @@ export interface ManagedGitRepo<I extends ManagedGitRepoIdentity>
   readonly content: (
     ctx: c.ManagedGitContentContext,
   ) => Promise<c.ManagedGitContent | undefined>;
+}
+
+export interface ManagedGitProject<I extends ManagedGitProjectIdentity> {
+  readonly isManagedGitProject: true;
+  readonly identity: I;
 }

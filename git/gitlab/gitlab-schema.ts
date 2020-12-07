@@ -121,6 +121,12 @@ export interface GitLabProject {
   wiki_enabled: boolean;
 }
 
+export type GitLabProjects = GitLabProject[];
+export const [isGitLabProject, isGitLabProjects] = safety.typeGuards<
+  GitLabProject,
+  GitLabProjects
+>("name", "path");
+
 export interface GitLabTreeFile {
   id: string;
   mode: string;

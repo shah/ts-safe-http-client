@@ -22,9 +22,11 @@ Deno.test(`GitLabRepo builders`, () => {
   const glServer = glAuthnVault.server(testHostID);
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer!);
-  const repo = gitLab.repo(
-    { group: "netspective-studios", repo: "netspective-workspaces" },
-  );
+  const repoIdentity: mod.GitLabGroupRepoIdentity = {
+    group: "netspective-studios",
+    repo: "netspective-workspaces",
+  };
+  const repo = gitLab.repo(repoIdentity);
   ta.assert(repo);
   ta.assert(repo.url());
 });
@@ -33,9 +35,11 @@ Deno.test(`valid GitLab repo tags`, async () => {
   const glServer = glAuthnVault.server(testHostID);
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer!);
-  const repo = gitLab.repo(
-    { group: "netspective-studios", repo: "netspective-workspaces" },
-  );
+  const repoIdentity: mod.GitLabGroupRepoIdentity = {
+    group: "netspective-studios",
+    repo: "netspective-workspaces",
+  };
+  const repo = gitLab.repo(repoIdentity);
   ta.assert(repo);
 
   const tags = await repo.repoTags();
@@ -56,16 +60,30 @@ Deno.test(`retrieve Managed Git groups`, async () => {
   ta.assert(struct.atPath("netspective-studios/git-ops-experiments"));
 });
 
+Deno.test(`retrieve Managed Git group's projects`, async () => {
+  const glServer = glAuthnVault.server(testHostID);
+  ta.assert(glServer, "GitLab Server not available");
+  const gitLab = new mod.GitLab(glServer!);
+  const struct = await gitLab.structure();
+  const group = struct.components.find((c) => c.name == "Netspective Studios");
+  ta.assert(group);
+  const collection = new mod.GitLabProjects();
+  await collection.populate(
+    gitLab,
+    mod.gitLabGroupProjectsPopulator(gitLab, group),
+  );
+  ta.assert(collection.projects.length > 10);
+});
+
 Deno.test(`retrieve Managed Git JSON`, async () => {
   const glServer = glAuthnVault.server(testHostID);
   ta.assert(glServer, "GitLab Server not available");
   const gitLab = new mod.GitLab(glServer!);
-  const repo = gitLab.repo(
-    {
-      group: "netspective-studios/git-ops-experiments",
-      repo: "gitlab-automation-target",
-    },
-  );
+  const repoIdentity: mod.GitLabGroupRepoIdentity = {
+    group: "netspective-studios/git-ops-experiments",
+    repo: "gitlab-automation-target",
+  };
+  const repo = gitLab.repo(repoIdentity);
   const result = await repo.content({
     path: "test-artifacts/ts-lhncbc-lforms/test1-with-error.lhc-form.json",
   });

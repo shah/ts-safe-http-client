@@ -154,7 +154,6 @@ export class GitLabStructComponent
 }
 
 export class GitLabStructure implements mGit.GitManagerStructure {
-  protected groupsFetch: shc.SafeFetchJSON<gls.GitLabGroups>;
   protected populated: number;
   protected topLevelGroups: GitLabStructComponent[] = [];
   protected groupsById = new Map<number, GitLabStructComponent>();
@@ -162,7 +161,6 @@ export class GitLabStructure implements mGit.GitManagerStructure {
   protected unstructured: GitLabStructComponent[] = [];
 
   constructor(readonly manager: gl.GitLab) {
-    this.groupsFetch = shc.safeFetchJSON;
     this.populated = 0;
   }
 

@@ -5,8 +5,8 @@ import {
   urlcat,
   vault as v,
 } from "./deps.ts";
-import * as glg from "./groups.ts";
-import * as glr from "./repos.ts";
+import * as glg from "./group.ts";
+import * as glr from "./repo.ts";
 export interface GitLabApiCallPreparer {
   (
     pathTemplate: string,
