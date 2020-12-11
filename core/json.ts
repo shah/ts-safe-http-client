@@ -19,7 +19,8 @@ export interface TraversalJsonContent<T> extends tr.TraversalStructuredContent {
 export function isTraversalJsonContent<T>(
   o: unknown,
 ): o is TraversalJsonContent<T> {
-  return o && typeof o === "object" && "jsonInstance" in o;
+  if (o && typeof o === "object") return "jsonInstance" in o;
+  return false;
 }
 
 export interface DetectJsonContentGuard<T> {
