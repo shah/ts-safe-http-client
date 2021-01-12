@@ -1,6 +1,6 @@
 // TODO: putting this into deps.ts did not work, so including it directly here
 // from: https://github.com/justjavac/deno_cheerio
-// @deno-types="https://cdn.jsdelivr.net/gh/justjavac/deno_cheerio/cheerio.d.ts"
+// @deno-types="https://cdn.jsdelivr.net/gh/justjavac/deno_cheerio@v0.1.0/cheerio.d.ts"
 import cheerio from "https://dev.jspm.io/cheerio/index.js";
 import { inspect as insp, safety } from "./deps.ts";
 
@@ -51,7 +51,7 @@ export interface HtmlImage {
   readonly alt?: string;
   readonly width?: number | string;
   readonly height?: number | string;
-  readonly imageElem: CheerioElement;
+  readonly imageElem: cheerio.CheerioElement;
 }
 
 export interface ImageFilter {
@@ -80,7 +80,7 @@ export interface SchemaParseErrorHandler {
   (
     ctx: HtmlSourceSupplier,
     index: number,
-    elem: CheerioElement,
+    elem: cheerio.CheerioElement,
     err: Error,
   ): void;
 }
@@ -97,7 +97,7 @@ export const isCuratableContent = safety.typeGuard<CuratableContent>(
 
 export interface QueryableHtmlContent extends HtmlContent {
   readonly htmlSource: string;
-  readonly document: CheerioStatic;
+  readonly document: cheerio.CheerioStatic;
   readonly anchors: (retain?: AnchorFilter) => HtmlAnchor[];
   readonly images: (retain?: ImageFilter) => HtmlImage[];
   readonly untypedSchemas: (
@@ -159,7 +159,7 @@ const pageIconSelectors = [
 ];
 
 export function typedAttribute(
-  elem: CheerioElement,
+  elem: cheerio.CheerioElement,
   name: string,
 ): string | number {
   const value = elem.attribs[name];
@@ -169,7 +169,7 @@ export function typedAttribute(
 }
 
 export function anchors(
-  document: CheerioStatic,
+  document: cheerio.CheerioStatic,
   retain?: AnchorFilter,
 ): HtmlAnchor[] {
   const result: HtmlAnchor[] = [];
@@ -191,7 +191,7 @@ export function anchors(
 }
 
 export function images(
-  document: CheerioStatic,
+  document: cheerio.CheerioStatic,
   retain?: ImageFilter,
 ): HtmlImage[] {
   const result: HtmlImage[] = [];
@@ -214,7 +214,7 @@ export function images(
 
 export function untypedSchemas(
   ctx: HtmlSourceSupplier,
-  document: CheerioStatic,
+  document: cheerio.CheerioStatic,
   unwrapGraph: boolean,
   retain?: UntypedObjectFilter,
   eh?: SchemaParseErrorHandler,
@@ -252,7 +252,7 @@ export function untypedSchemas(
   return result;
 }
 
-export function pageIcons(document: CheerioStatic): PageIcon[] {
+export function pageIcons(document: cheerio.CheerioStatic): PageIcon[] {
   const result: PageIcon[] = [];
   pageIconSelectors.forEach((selector) => {
     document(selector[1]).each((_, linkElem) => {
@@ -271,7 +271,7 @@ export function pageIcons(document: CheerioStatic): PageIcon[] {
   return result;
 }
 
-export function meta(document: CheerioStatic): HtmlMeta {
+export function meta(document: cheerio.CheerioStatic): HtmlMeta {
   const meta: HtmlMeta = {};
   document("meta").each((_, metaElem): void => {
     const name = metaElem.attribs["name"];
@@ -334,7 +334,7 @@ export async function inspectQueryableHtmlContent(
   };
 }
 
-export function parseOpenGraph(document: CheerioStatic): OpenGraph {
+export function parseOpenGraph(document: cheerio.CheerioStatic): OpenGraph {
   const result: OpenGraph = {};
   const metaTransformers: {
     [key: string]: (v: string) => void;
@@ -372,7 +372,7 @@ export function parseOpenGraph(document: CheerioStatic): OpenGraph {
   return result;
 }
 
-export function parseTwitterCard(document: CheerioStatic): TwitterCard {
+export function parseTwitterCard(document: cheerio.CheerioStatic): TwitterCard {
   const result: TwitterCard = {};
   const metaTransformers: {
     [key: string]: (v: string) => void;
@@ -411,7 +411,7 @@ export function parseTwitterCard(document: CheerioStatic): TwitterCard {
 }
 
 export function parseSocialGraph(
-  document: CheerioStatic,
+  document: cheerio.CheerioStatic,
 ): SocialGraph {
   const og = parseOpenGraph(document);
   const tc = parseTwitterCard(document);
@@ -422,7 +422,7 @@ export function parseSocialGraph(
 }
 
 export function title(
-  document: CheerioStatic,
+  document: cheerio.CheerioStatic,
   sg?: SocialGraph,
 ): string {
   // If an og:title is available, use it otherwise use twitter:title otherwise use page title
