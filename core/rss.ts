@@ -61,10 +61,10 @@ export async function textToFeed(
   target: tr.TraversalContent,
   xml: string,
 ): Promise<TraversalRssContent> {
-  const [feedType, feed] = await rss.deserializeFeed(
+  const { feedType, feed } = await rss.deserializeFeed(
     xml,
     { outputJsonFeed: true },
-  ) as [rss.FeedType, rss.JsonFeed];
+  );
   const result: TraversalRssContent = {
     ...target,
     isStructuredContent: true,

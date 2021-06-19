@@ -73,7 +73,7 @@ export interface SafeFetchJSON<T> {
 
 /**
  * safeFetchJSON executes an HTTP fetch and returns a guarded or unguarded
- * JSON object when the caller does not care about  HTTP  response. If caller 
+ * JSON object when the caller does not care about  HTTP  response. If caller
  * needs anything in the HTTP response, use `safeFetchJsonResult`.
  * @param req HTTP request
  * @param inspectJSON the inspector to run after HTTP fetch
@@ -111,7 +111,7 @@ export async function safeFetchJSON<T>(
 /**
  * safeTraverseJSON executes an HTTP fetch and returns a raw JSON traversal
  * result without guard checks. `safeTraverseJSON` should be used when HTTP
- * headers (e.g. RFC 8288 Link resources) or other response object properties 
+ * headers (e.g. RFC 8288 Link resources) or other response object properties
  * are needed. This function does not check the JSON type guards so that's the
  * responsibility of the caller.
  * @param req HTTP request

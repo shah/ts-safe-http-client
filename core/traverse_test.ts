@@ -28,7 +28,8 @@ const followTestCases: FollowTestCase[] = [
     name:
       "Netspective.com redirect with utm_* and other test params from Netspective bit.ly account",
     originalURL: "https://bit.ly/3dj75a0",
-    terminalURL: "https://www.netspective.com/?param=keep&param2=keep this too",
+    terminalURL:
+      "https://www.netspective.com/?param=keep&param2=keep%20this%20too",
     options: mod.defaultTraverseOptions(),
     guard: mod.isTraversalHtmlContent,
   },
