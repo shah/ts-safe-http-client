@@ -1,7 +1,7 @@
 // TODO: putting this into deps.ts did not work, so including it directly here
 // from: https://github.com/justjavac/deno_cheerio
 // @deno-types="https://cdn.jsdelivr.net/gh/justjavac/deno_cheerio@v0.1.0/cheerio.d.ts"
-import cheerio from "https://dev.jspm.io/cheerio/index.js";
+import cheerio from "https://esm.sh/cheerio@1.0.0-rc.11";
 import { inspect as insp, safety } from "./deps.ts";
 
 // const $ = cheerio.load('<h2 class="title">Hello world</h2>');
